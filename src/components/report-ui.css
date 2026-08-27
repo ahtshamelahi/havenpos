@@ -1,0 +1,71 @@
+/*
+ * Additive responsive rules for report pages.
+ * Purely visual — does not define any new data or change any query.
+ * Scoped under .report-page so it can't clash with unrelated styles
+ * elsewhere in the app; import this AFTER component-level CSS so these
+ * overrides win on the properties they touch.
+ */
+
+.report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Let tables scroll horizontally instead of blowing out the layout */
+.report-page .table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+.report-page .table-scroll .data-table {
+  min-width: 640px;
+}
+
+/* Summary cards reflow instead of squeezing on smaller screens */
+.report-page .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .report-page .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-page .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .report-page .summary-card-value {
+    font-size: 18px;
+  }
+
+  .report-page .report-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .report-page .report-meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .report-page .card.list-panel,
+  .report-page section.card.dash-panel {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .report-page .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

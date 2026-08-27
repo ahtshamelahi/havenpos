@@ -1,0 +1,472 @@
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.summary-card {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  border-top: 3px solid var(--navy-800);
+}
+
+.summary-card-info {
+  border-top-color: var(--navy-600);
+}
+
+.summary-card-warning {
+  border-top-color: var(--warning);
+}
+
+.summary-card-danger {
+  border-top-color: var(--danger);
+}
+
+.summary-card-success {
+  border-top-color: var(--success);
+}
+
+.dash-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 16px 0 4px;
+}
+
+@media (max-width: 1100px) {
+  .dash-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .dash-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary-card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.summary-card-value {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--navy-900);
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-panel {
+  padding: 18px 20px;
+}
+
+.dash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.dash-panel-header h2 {
+  font-size: 15px;
+}
+
+.dash-empty {
+  font-size: 13px;
+  padding: 18px 0;
+  text-align: center;
+}
+
+/* ============================================================
+   Dashboard table horizontal scrolling
+   ============================================================ */
+
+/*
+.dash-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+*/
+
+.dash-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+}
+
+.dash-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dash-table td {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+}
+
+.dash-list li:last-child {
+  border-bottom: none;
+}
+
+.dash-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 24px;
+  row-gap: 0;
+}
+
+@media (max-width: 700px) {
+  .dash-list-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   Redesigned dashboard — filter bar, summary cards, stacked
+   sections. These are new, dashboard-specific classes; the
+   shared .summary-grid / .summary-card* / .dash-grid /
+   .dash-panel* classes above are untouched.
+   ============================================================ */
+
+.dash-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-filter-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy-800);
+}
+
+.dash-filter-select,
+.dash-filter-date {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--navy-border);
+  font-size: 13px;
+  background: var(--white);
+  color: var(--text-primary);
+}
+
+.dash-filter-select:focus,
+.dash-filter-date:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px var(--navy-focus-ring);
+}
+
+.dash-filter-note {
+  font-size: 12px;
+  margin-left: auto;
+}
+
+/* ============================================================
+   Dashboard Summary Cards
+   ============================================================ */
+
+.dash-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 1100px) {
+  .dash-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .dash-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Clean professional card */
+.dash-summary-card {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  min-height: 88px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+/* Single blue line at bottom */
+.dash-summary-card::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 0;
+  height: 2px;
+  background: var(--navy-600);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Remove previous colored accent styles */
+.dash-summary-card::before {
+  display: none;
+}
+
+.dash-summary-card-info::before,
+.dash-summary-card-warning::before,
+.dash-summary-card-danger::before,
+.dash-summary-card-success::before {
+  display: none;
+}
+
+/* Make all cards use the same blue accent */
+.dash-summary-card-info,
+.dash-summary-card-warning,
+.dash-summary-card-danger,
+.dash-summary-card-success {
+  border-left: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+}
+
+/* Subtle professional hover */
+.dash-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--navy-border);
+}
+
+/* Card label */
+.dash-summary-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+/* Card value */
+.dash-summary-value {
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--navy-900);
+}
+
+.dash-section {
+  padding: 20px 22px;
+  margin-bottom: 18px;
+}
+
+.dash-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.dash-section-header h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+.dash-due-cell {
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+/* ============================================================
+   Mobile table scrolling
+   ============================================================ */
+
+/*
+@media (max-width: 560px) {
+  .dash-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dash-table {
+    min-width: 520px;
+  }
+}
+*/
+
+/* ============================================================
+   Dashboard data-table horizontal scrolling
+   Used by the current Dashboard.jsx tables:
+   Sales Payment Due
+   Purchase Payment Due
+   Low Stock Alerts
+   Pending Shipments
+   ============================================================ */
+
+.dashboard-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-table-wrapper .data-table {
+  min-width: 760px;
+}
+
+@media (max-width: 560px) {
+  .dashboard-table-wrapper .data-table {
+    min-width: 700px;
+  }
+}
+
+/* ============================================================
+   Sales Graph Module
+   ============================================================ */
+
+.dash-graph-section {
+  padding: 20px 22px 28px;
+}
+
+.graph-header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.graph-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.graph-filter-select,
+.graph-filter-date {
+  min-width: 150px;
+}
+
+.graph-chart-wrap {
+  width: 100%;
+  height: 320px;
+}
+
+/* Tooltip */
+
+.graph-tooltip {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-body);
+}
+
+.graph-tooltip-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.graph-tooltip-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .graph-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .graph-filters {
+    width: 100%;
+  }
+
+  .graph-filter-select,
+  .graph-filter-date {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .graph-chart-wrap {
+    height: 260px;
+  }
+}
+
+@media (max-width: 400px) {
+  .graph-chart-wrap {
+    height: 220px;
+  }
+}

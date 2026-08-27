@@ -1,0 +1,36 @@
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sortable-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 21px;
+  line-height: 1;
+
+  color: #c8c8c8;
+
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sortable-header:hover .sortable-arrow {
+  color: #1d2545;
+}
+
+.sortable-arrow.active {
+  color: #1d2545;
+  font-weight: 700;
+}

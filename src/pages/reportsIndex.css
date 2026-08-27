@@ -1,0 +1,38 @@
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.report-card {
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.05s ease;
+}
+
+.report-card:hover {
+  border-color: var(--navy-600);
+}
+
+.report-card:active {
+  transform: translateY(1px);
+}
+
+.report-card-icon {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.report-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--navy-900);
+  margin-bottom: 4px;
+}
+
+.report-card-desc {
+  font-size: 13px;
+  line-height: 1.4;
+}

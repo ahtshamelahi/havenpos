@@ -1,0 +1,426 @@
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&display=swap');
+
+.sidebar {
+  --sidebar-width: 224px;
+  --sidebar-width-collapsed: 72px;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+
+  width: var(--sidebar-width);
+
+  background: var(--navy-800);
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 14px 12px;
+
+  z-index: 40;
+
+  transition:
+    width 0.2s ease,
+    transform 0.2s ease;
+
+  box-shadow: 2px 0 14px rgba(0, 0, 0, 0.14);
+}
+
+
+/* ============================================================
+   COLLAPSED SIDEBAR
+   ============================================================ */
+
+.sidebar-collapsed {
+  width: var(--sidebar-width-collapsed);
+  padding: 14px 10px;
+}
+
+
+/* ============================================================
+   BRAND / POS LOGO
+   ============================================================ */
+
+.sidebar-brand {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 8px 6px 20px;
+  margin-bottom: 10px;
+
+  color: var(--white);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  box-sizing: border-box;
+}
+
+
+/* Old P square is hidden */
+
+.sidebar-brand-mark {
+  display: none;
+}
+
+
+/* ============================================================
+   POS WORDMARK
+   ============================================================ */
+
+.sidebar-brand-text {
+  display: block;
+
+  width: auto;
+
+  white-space: nowrap;
+  overflow: visible;
+
+  opacity: 1;
+
+  color: var(--white);
+
+  /*
+     Square / futuristic / technical font
+  */
+  font-family:
+    "Orbitron",
+    "Arial Black",
+    "Segoe UI",
+    sans-serif;
+
+  font-size: 22px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+
+  line-height: 1;
+
+  text-align: center;
+
+  transition:
+    opacity 0.15s ease,
+    width 0.15s ease;
+}
+
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+.sidebar-nav {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
+}
+
+
+/* Chrome / Edge scrollbar */
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+
+/* ============================================================
+   NAVIGATION LINKS
+   ============================================================ */
+
+.sidebar-link {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 10px 12px;
+
+  border-radius: var(--radius-sm);
+
+  color: rgba(255, 255, 255, 0.72);
+
+  text-decoration: none;
+
+  font-size: 13.5px;
+
+  font-weight: 500;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+
+/* ============================================================
+   NAVIGATION ICON
+   ============================================================ */
+
+.sidebar-link-icon {
+  flex: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+}
+
+
+/* ============================================================
+   NAVIGATION LABEL
+   ============================================================ */
+
+.sidebar-link-label {
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  opacity: 1;
+
+  transition:
+    opacity 0.15s ease,
+    width 0.15s ease;
+}
+
+
+/* ============================================================
+   HOVER
+   ============================================================ */
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+
+  color: var(--white);
+}
+
+
+/* ============================================================
+   ACTIVE LINK
+   ============================================================ */
+
+.sidebar-link-active {
+  background: rgba(255, 255, 255, 0.14);
+
+  color: var(--white);
+
+  font-weight: 600;
+}
+
+
+/* Active indicator */
+
+.sidebar-link-active::before {
+  content: '';
+
+  position: absolute;
+
+  left: -12px;
+
+  top: 8px;
+  bottom: 8px;
+
+  width: 3px;
+
+  border-radius: 0 3px 3px 0;
+
+  background: var(--white);
+}
+
+
+/* ============================================================
+   COLLAPSED SIDEBAR
+   ============================================================ */
+
+.sidebar-collapsed .sidebar-link {
+  justify-content: center;
+
+  padding: 10px;
+}
+
+.sidebar-collapsed .sidebar-link-active::before {
+  left: -10px;
+}
+
+
+/*
+   Keep navigation labels hidden when collapsed
+*/
+
+.sidebar-collapsed .sidebar-link-label {
+  opacity: 0;
+  width: 0;
+}
+
+
+/*
+   Keep POS visible and centered when collapsed
+*/
+
+.sidebar-collapsed .sidebar-brand {
+  justify-content: center;
+}
+
+.sidebar-collapsed .sidebar-brand-text {
+  opacity: 1;
+  width: auto;
+}
+
+
+/* ============================================================
+   COLLAPSE TOGGLE
+   ============================================================ */
+
+/*
+.sidebar-collapse-btn {
+  flex: none;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  margin-top: 10px;
+
+  padding: 10px 12px;
+
+  border: none;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: transparent;
+
+  color: rgba(255, 255, 255, 0.6);
+
+  font-size: 12.5px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  border-radius: var(--radius-sm);
+
+  white-space: nowrap;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+
+  color: var(--white);
+}
+
+.sidebar-collapsed .sidebar-collapse-btn {
+  justify-content: center;
+}
+*/
+
+
+/* ============================================================
+   MOBILE BACKDROP
+   ============================================================ */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+
+/* ============================================================
+   MOBILE SIDEBAR
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+  .sidebar {
+    transform: translateX(-100%);
+
+    width: 250px;
+
+    box-shadow: var(--shadow-lg);
+  }
+
+
+  .sidebar-open {
+    transform: translateX(0);
+  }
+
+
+  /*
+     Mobile drawer always displays full labels
+  */
+
+  .sidebar-collapsed {
+    width: 250px;
+  }
+
+
+  .sidebar-collapsed .sidebar-brand-text,
+  .sidebar-collapsed .sidebar-link-label {
+    opacity: 1;
+
+    width: auto;
+  }
+
+
+  /*
+     POS remains centered on mobile
+  */
+
+  .sidebar-brand {
+    width: 100%;
+
+    justify-content: center;
+  }
+
+
+  .sidebar-brand-text {
+    font-size: 22px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.12em;
+
+    text-align: center;
+  }
+
+
+  /* Mobile backdrop */
+
+  .sidebar-backdrop {
+    display: block;
+
+    position: fixed;
+
+    inset: 0;
+
+    background: rgba(19, 26, 51, 0.4);
+
+    z-index: 30;
+  }
+}

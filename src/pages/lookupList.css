@@ -1,0 +1,96 @@
+.lookup-panel {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.lookup-add-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+  box-sizing: border-box;
+}
+
+.lookup-add-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--navy-border);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.lookup-add-row input:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px var(--navy-focus-ring);
+}
+
+.lookup-add-row .field-small {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+/* Table */
+
+.lookup-panel .data-table {
+  min-width: 700px;
+}
+
+/* Actions column */
+
+.lookup-panel .data-table th:last-child,
+.lookup-panel .data-table td:last-child {
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+/* Back button */
+
+.tax-back-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+  .lookup-panel {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .lookup-add-row {
+    flex-wrap: wrap;
+  }
+
+  .lookup-add-row input:not(.field-small) {
+    width: 100%;
+    flex: none;
+  }
+
+  .lookup-add-row .field-small {
+    flex: 1;
+    width: auto;
+  }
+
+  .lookup-add-row .btn {
+    flex: 1;
+  }
+
+  .lookup-panel .data-table {
+    min-width: 700px;
+  }
+
+  .tax-back-button {
+    align-self: flex-start;
+  }
+}

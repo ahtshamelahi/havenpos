@@ -1,0 +1,78 @@
+.report-header {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-top: 5px solid var(--navy-800);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.report-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.report-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy-500);
+  margin-bottom: 4px;
+}
+
+.report-business-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--navy-900);
+}
+
+.report-business-meta {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.report-title-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+.report-title {
+  font-size: 21px;
+  margin-bottom: 2px;
+}
+
+.report-subtitle {
+  font-size: 13px;
+}
+
+.report-meta-row {
+  display: flex;
+  gap: 28px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.report-meta-label {
+  font-weight: 700;
+  color: var(--navy-800);
+  margin-right: 4px;
+}
+
+/* ---------- print-only refinements ---------- */
+@media print {
+  .report-header {
+    box-shadow: none;
+    border: 1px solid #d5d5d5;
+    border-top: 5px solid var(--navy-800);
+    page-break-inside: avoid;
+    page-break-after: avoid;
+  }
+}

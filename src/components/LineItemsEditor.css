@@ -1,0 +1,219 @@
+.line-items-add {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  width: 100%;
+}
+
+.line-items-add select {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--navy-border);
+  font-size: 14px;
+}
+
+.line-items-empty {
+  font-size: 13px;
+  padding: 16px 0;
+  text-align: center;
+  border: 1px dashed var(--navy-border);
+  border-radius: var(--radius-sm);
+}
+
+
+/*
+ * IMPORTANT:
+ *
+ * This keeps the table inside the available
+ * page/container width.
+ *
+ * If the table becomes wider than the screen,
+ * the user can scroll horizontally.
+ */
+.line-items-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  /*
+   * Smooth horizontal scrolling
+   * on mobile devices.
+   */
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/*
+ * Prevent the table from shrinking its columns
+ * too much.
+ *
+ * The table can become wider than the wrapper,
+ * and the wrapper will provide horizontal scrolling.
+ */
+.line-items-table {
+  min-width: 1100px;
+  width: max-content;
+  max-width: none;
+}
+
+
+/*
+ * Keep table cells from wrapping
+ * unnecessarily.
+ */
+.line-items-table th,
+.line-items-table td {
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+
+/*
+ * Input styling.
+ */
+.line-input {
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+
+.line-input:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px var(--navy-focus-ring);
+}
+
+
+.line-input-sm {
+  width: 90px;
+}
+
+
+.line-input-xs {
+  width: 70px;
+}
+
+
+.line-discount-cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+
+.line-total-cell {
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+
+/*
+ * Optional:
+ * Makes it visually clear that the table
+ * can be horizontally scrolled.
+ */
+.line-items-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+
+.line-items-table-wrapper::-webkit-scrollbar-thumb {
+  background: var(--navy-border);
+  border-radius: 999px;
+}
+
+
+.line-items-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+
+
+
+
+/*
+ * Remove/replace the old rule:
+ *
+ * .line-items-add select { ... }
+ *
+ * with the rules below.
+ */
+
+.product-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.product-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--navy-border);
+  font-size: 14px;
+}
+
+.product-search-input:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px var(--navy-focus-ring);
+}
+
+.product-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--navy-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.product-search-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.product-search-item.highlighted {
+  background: var(--navy-focus-ring, #eef2ff);
+}
+
+.product-search-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.product-search-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-search-item-stock {
+  color: var(--navy-600, #64748b);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.product-search-empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--navy-600, #64748b);
+}

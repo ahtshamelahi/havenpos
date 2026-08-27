@@ -1,0 +1,552 @@
+/* ============================================================
+   Design tokens — derived from brand Navy #1D2545 / White #FFFFFF
+   ============================================================ */
+:root {
+  /* Core brand */
+  --navy-900: #131a33;   /* deepest — text on light, active press */
+  --navy-800: #1d2545;   /* PRIMARY brand navy */
+  --navy-700: #2a335f;   /* hover */
+  --navy-600: #3a4478;   /* active/selected fills */
+  --navy-500: #57619a;   /* icons on light, secondary text emphasis */
+  --navy-100: #e4e6f0;   /* soft tint background */
+  --navy-50:  #f2f3f8;   /* faint tint, table stripe */
+  --navy-border: #d9dcea;
+  --navy-focus-ring: rgba(29, 37, 69, 0.25);
+
+  /* Neutrals */
+  --white: #ffffff;
+  --bg-app: #f6f7fb;
+  --text-primary: #1a1d29;
+  --text-secondary: #5b6072;
+  --text-muted: #8a8fa3;
+  --border-light: #e7e9f1;
+
+  /* Status */
+  --success: #1a9d6c;
+  --success-bg: #e7f7f1;
+  --warning: #d98c1f;
+  --warning-bg: #fdf3e2;
+  --danger: #d64545;
+  --danger-bg: #fbe9e9;
+  --info: var(--navy-600);
+  --info-bg: var(--navy-50);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(19, 26, 51, 0.06);
+  --shadow-md: 0 4px 16px rgba(19, 26, 51, 0.08);
+  --shadow-lg: 0 12px 32px rgba(19, 26, 51, 0.12);
+
+  /* Radius & spacing rhythm */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Type */
+  --font-display: 'Manrope', 'Inter', sans-serif;
+  --font-body: 'Inter', 'Manrope', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--navy-900);
+  margin: 0;
+}
+
+a {
+  color: var(--navy-700);
+}
+
+button {
+  font-family: var(--font-body);
+}
+
+:focus-visible {
+  outline: 2px solid var(--navy-600);
+  outline-offset: 2px;
+}
+
+/* ---------- shared button system ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--navy-800);
+  color: var(--white);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--navy-700);
+}
+.btn-primary:active:not(:disabled) {
+  background: var(--navy-900);
+}
+
+box-szing
+.btn-secondary {
+  background: var(--white);
+  color: var(--navy-800);
+  border-color: var(--navy-border);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--navy-50);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--navy-50);
+  color: var(--navy-800);
+}
+.btn-danger {
+  background: var(--white);
+  color: var(--danger);
+  border-color: #f0caca;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* ---------- form fields ---------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.field input,
+.field select,
+.field textarea {
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--navy-border);
+  background: var(--white);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px var(--navy-focus-ring);
+}
+.field input:disabled {
+  background: var(--navy-50);
+  color: var(--text-muted);
+}
+.field-error {
+  font-size: 12px;
+  color: var(--danger);
+}
+.field input.invalid {
+  border-color: var(--danger);
+}
+
+/* ---------- card ---------- */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--navy-700); }
+
+/* ---------- banner ---------- */
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.banner-trial { background: var(--navy-800); color: var(--white); }
+.banner-warning { background: var(--warning-bg); color: var(--warning); }
+.banner-danger { background: var(--danger-bg); color: var(--danger); }
+
+/* ---------- utility ---------- */
+.muted { color: var(--text-muted); }
+.error-text { color: var(--danger); font-size: 13px; }
+
+/* ---------- shared page header ---------- */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.page-header h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+/* ---------- shared list panel (used by users, products, contacts, purchases, sales) ---------- */
+.list-panel {
+  overflow-x: auto;
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.list-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--navy-border);
+  font-size: 14px;
+}
+
+.list-search:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px var(--navy-focus-ring);
+}
+
+.list-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.list-tab {
+  padding: 7px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--navy-border);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.list-tab-active {
+  background: var(--navy-800);
+  border-color: var(--navy-800);
+  color: var(--white);
+}
+
+/* ---------- shared data table ---------- */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 10px 16px;
+  background: var(--navy-50);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.data-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+}
+
+.table-compact th, .table-compact td {
+  padding: 6px 8px !important;
+  font-size: 11.5px !important;
+}
+
+.data-table tbody tr:hover {
+  background: var(--navy-50);
+}
+
+.table-empty {
+  text-align: center;
+  padding: 32px 0 !important;
+}
+
+.table-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ---------- shared form section layout ---------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+@media (max-width: 560px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-section {
+  padding: 20px 22px;
+}
+
+.form-section h2 {
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-bottom: 20px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--navy-border);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--navy-50);
+}
+
+.chip-selected {
+  background: var(--navy-800);
+  border-color: var(--navy-800);
+  color: var(--white);
+}
+
+/* ---------- shared totals summary (purchase/sale forms) ---------- */
+.totals-summary {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+  max-width: 320px;
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.totals-summary > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.totals-grand {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+  font-weight: 700;
+  font-size: 15px !important;
+  color: var(--navy-900) !important;
+}
+
+/* ---------- print (used by Reports) ---------- */
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  /* Browsers strip background colors/shadows by default when printing —
+     this is the single most important rule here. Without it, every navy
+     accent, badge, and card border silently disappears on the page. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    /* color-adjust: exact !important; */
+  }
+
+  html, body {
+    background: #fff !important;
+    font-size: 11px;
+  }
+
+  .sidebar, .app-header, .banner, .no-print {
+    display: none !important;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .app-content {
+    padding: 0 !important;
+  }
+
+  /* Cards keep their navy accents but lose the screen-only shadow/hover feel */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #d5d5d5 !important;
+    page-break-inside: avoid;
+  }
+
+  /* Two/three-column report layouts stack to one column so nothing gets
+     squeezed unreadably narrow on a printed page. */
+  .dash-grid {
+    display: block !important;
+  }
+  .dash-grid > .dash-panel {
+    margin-bottom: 14px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+  }
+  .summary-card {
+    padding: 12px 14px !important;
+    box-shadow: none !important;
+    border: 1px solid #d5d5d5 !important;
+    border-top: 3px solid var(--navy-800) !important;
+  }
+  .summary-card-value {
+    font-size: 18px !important;
+  }
+
+  /* Tables: repeat the header on every printed page, and never split a
+     row across a page break. */
+  table {
+    page-break-inside: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  .data-table th {
+    background: var(--navy-50) !important;
+  }
+
+  a {
+    color: var(--navy-800) !important;
+    text-decoration: none !important;
+  }
+}
+
+/* PDF Export Styles — applied to <body> while html2pdf is capturing.
+   We target .app-content (the <main> inside AppLayout), NOT .app-main,
+   because .app-main includes the Header and 210px sidebar margin which
+   creates a blank first page in the generated PDF.                      */
+.pdf-export-mode .app-content {
+  padding: 0 !important;
+  background: #fff !important;
+}
+/* Hide toolbar buttons and paginator inside the captured area */
+.pdf-export-mode .no-print,
+.pdf-export-mode .pagination-bar {
+  display: none !important;
+}
+/* Show the print header inside the captured area */
+.pdf-export-mode .prh-root {
+  display: block !important;
+}
+/* Flatten multi-column grids for PDF */
+.pdf-export-mode .dash-grid {
+  display: block !important;
+}
+.pdf-export-mode .dash-grid > .dash-panel {
+  margin-bottom: 14px;
+}
+
+/* Stock Report / table PDF export: prevent horizontal overflow */
+.pdf-export-mode .table-scroll {
+  overflow: visible !important;
+  overflow-x: visible !important;
+}
+.pdf-export-mode .table-scroll .data-table {
+  min-width: unset !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+  font-size: 10px !important;
+}
+.pdf-export-mode .table-scroll .data-table th,
+.pdf-export-mode .table-scroll .data-table td {
+  padding: 4px 6px !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+}
+
