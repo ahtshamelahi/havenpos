@@ -3,23 +3,26 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext.jsx';
 
 /**
- * useRegister — tracks the single OPEN register for a given location.
+ * useRegister — tracks the CURRENT USER's single open register.
  *
- * A location has at most one open register at a time (enforced by the
- * partial unique index uq_registers_one_open_per_location in the DB).
- * Whoever is at the POS terminal for that location shares that register,
- * regardless of which staff member is currently logged in — the same way
- * posBilling.jsx already scopes stock/cart state to `locationId` rather
- * than to the logged-in user.
+ * A register now belongs to whoever opened it (enforced by the partial
+ * unique index uq_registers_one_open_per_user in the DB): each user can
+ * have at most one open register at a time, at any one location. Two
+ * different cashiers CAN have separate open registers at the same
+ * location — the drawer belongs to the person, not the terminal.
+ *
+ * Because of that, this hook takes no `locationId` argument for reading —
+ * it always resolves to "my open register", full stop. `locationId` is
+ * only needed when actually opening a new one (see openRegister below).
  */
-export default function useRegister(locationId) {
+export default function useRegister() {
   const { business, profile } = useAuth();
   const [register, setRegister] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
-    if (!business?.id || !locationId) {
+    if (!business?.id || !profile?.id) {
       setRegister(null);
       setLoading(false);
       return;
@@ -32,7 +35,7 @@ export default function useRegister(locationId) {
       .from('registers')
       .select('*')
       .eq('business_id', business.id)
-      .eq('location_id', locationId)
+      .eq('user_id', profile.id)
       .eq('status', 'open')
       .order('opened_at', { ascending: false })
       .limit(1)
@@ -46,14 +49,14 @@ export default function useRegister(locationId) {
     }
 
     setLoading(false);
-  }, [business?.id, locationId]);
+  }, [business?.id, profile?.id]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   const openRegister = useCallback(
-    async (openingCash) => {
+    async (locationId, openingCash) => {
       if (!business?.id || !locationId || !profile?.id) {
         throw new Error('Missing business, location, or user — cannot open a register.');
       }
@@ -71,9 +74,9 @@ export default function useRegister(locationId) {
         .single();
 
       if (err) {
-        // Most likely cause: someone else already opened a register for
-        // this location (uq_registers_one_open_per_location). Re-sync so
-        // the UI picks up the real state instead of staying stuck.
+        // Most likely cause: this user already has an open register
+        // somewhere (uq_registers_one_open_per_user). Re-sync so the UI
+        // picks up the real state instead of staying stuck.
         await refresh();
         throw err;
       }
@@ -81,7 +84,7 @@ export default function useRegister(locationId) {
       setRegister(data);
       return data;
     },
-    [business?.id, locationId, profile?.id, refresh]
+    [business?.id, profile?.id, refresh]
   );
 
   const closeRegister = useCallback(

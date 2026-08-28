@@ -137,21 +137,26 @@ export function computeRegisterSummary({
 }
 
 /**
- * Looks up the currently OPEN register id for a location, or null.
+ * Looks up the CURRENT USER's open register id, or null.
  * Use this at the point a sale/return/expense is created outside of
  * PosBilling.jsx (which already holds `register` in state via useRegister)
  * so that transaction still gets tagged with the right register_id.
  *
+ * Registers are one-per-user (see uq_registers_one_open_per_user), not
+ * per-location, so this is keyed by userId — not locationId. A return
+ * created by someone with no open register simply gets register_id = null,
+ * same as today.
+ *
  * @param {object} supabase - pass the shared client (defaults to the app's)
  */
-export async function getOpenRegisterId(businessId, locationId, supabase = defaultClient) {
-  if (!businessId || !locationId) return null;
+export async function getOpenRegisterId(businessId, userId, supabase = defaultClient) {
+  if (!businessId || !userId) return null;
 
   const { data } = await supabase
     .from('registers')
     .select('id')
     .eq('business_id', businessId)
-    .eq('location_id', locationId)
+    .eq('user_id', userId)
     .eq('status', 'open')
     .maybeSingle();
 

@@ -50,6 +50,9 @@ export default function Registers() {
           <h1>Registers</h1>
           <p className="muted">
             Cash drawer open/close history for {business?.business_name}.
+            Each row is one user's session — the same location can appear
+            more than once if multiple cashiers each ran their own drawer
+            there.
           </p>
         </div>
 
