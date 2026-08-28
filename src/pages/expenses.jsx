@@ -136,7 +136,7 @@ export default function Expenses() {
   ]);
 
   const monthRange = useMemo(() => getPresetRange('this_month'), []);
-  const today = todayStr();
+  const today = todayLocal();
 
   const summary = useMemo(() => {
     const totalAll = sumAmounts(rows);
