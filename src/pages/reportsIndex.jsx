@@ -20,8 +20,8 @@ export default function ReportsIndex() {
     <AppLayout>
       <div className="page-header">
         <div>
-          <h1>Reports | Filtered and Printable</h1>
-
+          <h1>Reports</h1>
+          <p className="muted">Filtered, printable reports for the business.</p>
         </div>
       </div>
 

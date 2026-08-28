@@ -161,8 +161,12 @@ export default function Users() {
     <AppLayout>
       <div className="page-header">
         <div>
-          <h1>User management | Accounts , Roles , Permissions {' '}
-            {business?.business_name}.</h1>
+          <h1>User management</h1>
+
+          <p className="muted">
+            Staff accounts, roles, and module permissions for{' '}
+            {business?.business_name}.
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>

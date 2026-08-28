@@ -105,16 +105,14 @@
 /* ============================================================
    Dashboard table horizontal scrolling
    ============================================================ */
-
-/*
+/* 
 .dash-table-wrapper {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-}
-*/
+} */
 
 .dash-table {
   width: 100%;
@@ -174,7 +172,8 @@
    Redesigned dashboard — filter bar, summary cards, stacked
    sections. These are new, dashboard-specific classes; the
    shared .summary-grid / .summary-card* / .dash-grid /
-   .dash-panel* classes above are untouched.
+   .dash-panel* classes above are untouched (Reports pages and
+   POS Billing depend on them).
    ============================================================ */
 
 .dash-filter-bar {
@@ -218,10 +217,6 @@
   margin-left: auto;
 }
 
-/* ============================================================
-   Dashboard Summary Cards
-   ============================================================ */
-
 .dash-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -241,78 +236,58 @@
   }
 }
 
-/* Clean professional card */
 .dash-summary-card {
-  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   background: var(--white);
   border: 1px solid var(--border-light);
+  border-left: 4px solid var(--navy-800);
   border-radius: var(--radius-md);
-  padding: 18px 20px;
-  min-height: 88px;
+  padding: 16px 16px;
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
-
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
 }
 
-/* Single blue line at bottom */
-.dash-summary-card::after {
-  content: '';
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  bottom: 0;
-  height: 2px;
-  background: var(--navy-600);
-  border-radius: 2px 2px 0 0;
+.dash-summary-card-info {
+  border-left-color: var(--navy-600);
 }
 
-/* Remove previous colored accent styles */
-.dash-summary-card::before {
-  display: none;
+.dash-summary-card-warning {
+  border-left-color: var(--warning);
 }
 
-.dash-summary-card-info::before,
-.dash-summary-card-warning::before,
-.dash-summary-card-danger::before,
-.dash-summary-card-success::before {
-  display: none;
+.dash-summary-card-danger {
+  border-left-color: var(--danger);
 }
 
-/* Make all cards use the same blue accent */
-.dash-summary-card-info,
-.dash-summary-card-warning,
-.dash-summary-card-danger,
 .dash-summary-card-success {
-  border-left: 1px solid var(--border-light);
-  border-right: 1px solid var(--border-light);
+  border-left-color: var(--success);
 }
 
-/* Subtle professional hover */
-.dash-summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--navy-border);
+.dash-summary-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--navy-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
 }
 
-/* Card label */
 .dash-summary-label {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
 }
 
-/* Card value */
 .dash-summary-value {
   font-family: var(--font-display);
-  font-size: 21px;
-  line-height: 1.2;
+  font-size: 19px;
   font-weight: 800;
   color: var(--navy-900);
 }
@@ -343,8 +318,7 @@
 /* ============================================================
    Mobile table scrolling
    ============================================================ */
-
-/*
+/* 
 @media (max-width: 560px) {
   .dash-table-wrapper {
     width: 100%;
@@ -357,8 +331,7 @@
   .dash-table {
     min-width: 520px;
   }
-}
-*/
+} */
 
 /* ============================================================
    Dashboard data-table horizontal scrolling
@@ -418,7 +391,6 @@
 }
 
 /* Tooltip */
-
 .graph-tooltip {
   background: var(--white);
   border: 1px solid var(--border-light);
@@ -440,10 +412,7 @@
   color: var(--navy-900);
 }
 
-/* ============================================================
-   Responsive
-   ============================================================ */
-
+/* Responsive */
 @media (max-width: 640px) {
   .graph-header {
     flex-direction: column;

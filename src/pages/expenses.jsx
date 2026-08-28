@@ -136,7 +136,7 @@ export default function Expenses() {
   ]);
 
   const monthRange = useMemo(() => getPresetRange('this_month'), []);
-  const today = todayLocal(business?.time_zone);
+  const today = todayStr();
 
   const summary = useMemo(() => {
     const totalAll = sumAmounts(rows);
@@ -211,8 +211,10 @@ export default function Expenses() {
       <div className="expenses-page">
         <div className="page-header">
           <div>
-            <h1>Expense management | Inventory purchases belong in Purchases.</h1>
-
+            <h1>Expense management</h1>
+            <p className="muted">
+              Track operational business expenses for {business?.business_name}. Inventory purchases belong in Purchases.
+            </p>
           </div>
           <div className="expenses-header-actions no-print">
             <Link to="/expense-categories" className="btn btn-secondary">Categories</Link>
