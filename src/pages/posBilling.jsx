@@ -212,22 +212,36 @@ export default function PosBilling() {
     useState(false);
 
   // ---------- Register (cash drawer) ----------
+  // Registers are one-per-USER (see uq_registers_one_open_per_user), not
+  // per-location — useRegister() always resolves to "my open register",
+  // regardless of which location is currently selected below.
   const {
     register,
     loading: registerLoading,
     openRegister,
     closeRegister,
-  } = useRegister(locationId);
+  } = useRegister();
 
   const [showOpenRegister, setShowOpenRegister] = useState(false);
   const [showCloseRegister, setShowCloseRegister] = useState(false);
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
 
-  // Prompt to open a register as soon as we know a location has none open.
+  // Prompt to open a register as soon as we know this user has none open.
   useEffect(() => {
     if (!locationId || registerLoading) return;
     setShowOpenRegister(!register);
   }, [locationId, registerLoading, register]);
+
+  // Once a register is open, lock POS Billing to that register's location.
+  // The drawer is tied to one location_id at open time — selling against a
+  // different location while it's open would tag sales to the wrong
+  // register's location, so the dropdown below gets disabled instead.
+  useEffect(() => {
+    if (register?.location_id && locationId !== register.location_id) {
+      setLocationId(register.location_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [register?.location_id]);
 
   const loadCatalog = async () => {
     if (!business?.id) return;
@@ -1860,7 +1874,7 @@ export default function PosBilling() {
               Location:
             </span>
 
-            {locations.length > 1 ? (
+            {locations.length > 1 && !register ? (
               <select
                 value={locationId}
                 onChange={(e) => {
@@ -1881,8 +1895,9 @@ export default function PosBilling() {
                 ))}
               </select>
             ) : (
-              <strong>
+              <strong title={register ? 'Locked while your register is open' : undefined}>
                 {currentLocationName}
+                {register && ' 🔒'}
               </strong>
             )}
           </div>
@@ -1909,7 +1924,7 @@ export default function PosBilling() {
                   ? 'Checking register…'
                   : register
                     ? `Register open since ${new Date(register.opened_at).toLocaleTimeString()} — click to close`
-                    : 'No register open at this location'
+                    : 'No register open — open one to start selling'
               }
               onClick={() => register && setShowCloseRegister(true)}
             >
@@ -2088,7 +2103,7 @@ export default function PosBilling() {
 
         {!registerLoading && !register && locationId && (
           <div className="error-text pos-alert">
-            No register is open at {currentLocationName}. Open one to start selling.
+            You don't have a register open. Open one to start selling.
           </div>
         )}
 
@@ -4027,7 +4042,7 @@ export default function PosBilling() {
             setRegisterSubmitting(true);
             setError('');
             try {
-              await openRegister(amt);
+              await openRegister(locationId, amt);
               setShowOpenRegister(false);
             } catch (err) {
               setError(err.message || 'Could not open register.');
