@@ -37,3 +37,33 @@ export const supabaseAdminAction = createClient(supabaseUrl, supabaseAnonKey, {
     storageKey: 'pos-auth-admin-action',
   },
 });
+
+export function extractStoragePath(url, bucket) {
+  if (!url) return null;
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const index = url.indexOf(marker);
+  if (index !== -1) {
+    return decodeURIComponent(url.slice(index + marker.length));
+  }
+  return null;
+}
+
+export async function deleteStorageFile(url, bucket) {
+  const path = extractStoragePath(url, bucket);
+  if (path) {
+    const { error } = await supabase.storage.from(bucket).remove([path]);
+    if (error) {
+      console.error('Failed to delete storage file:', error.message);
+    }
+  }
+}
+
+export async function deleteStorageFiles(urls, bucket) {
+  const paths = urls.map((url) => extractStoragePath(url, bucket)).filter(Boolean);
+  if (paths.length > 0) {
+    const { error } = await supabase.storage.from(bucket).remove(paths);
+    if (error) {
+      console.error('Failed to delete storage files:', error.message);
+    }
+  }
+}

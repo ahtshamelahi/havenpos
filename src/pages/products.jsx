@@ -6,7 +6,7 @@ import SortableHeader from '../components/SortableHeader.jsx';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { supabase } from '../lib/supabaseClient';
+import { supabase,deleteStorageFiles } from '../lib/supabaseClient';
 import { fetchAllBatched } from '../lib/fetchUtils.js';
 
 export default function Products() {

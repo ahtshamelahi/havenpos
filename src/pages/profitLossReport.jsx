@@ -272,7 +272,15 @@ export default function ProfitLossReport() {
     // Purchase return = supplier refunds you = credit (raises profit).
     // Sell return = you refund a customer = debit (lowers profit).
     const credits = totalPurchaseReturnVal + sellAdditionalExpenses + totalStockRecovered + totalSellRoundOff;
-    const debits = totalStockAdjustmentVal + totalExpense + totalSellReturnVal + totalTransferShippingCharge + purchaseAdditionalExpenses + totalCustomerReward;
+
+    // totalStockAdjustmentVal is intentionally NOT included here. Every
+    // adjustment ledger row already changes the product's on-hand quantity,
+    // which flows straight into closingStockPurchaseVal above — and COGS
+    // (openingStockPurchaseVal + totalPurchases - closingStockPurchaseVal)
+    // already reflects that change. Adding totalStockAdjustmentVal into debits
+    // as well double-counted every adjustment: once through the closing-stock
+    // valuation, once again here.
+    const debits = totalExpense + totalSellReturnVal + totalTransferShippingCharge + purchaseAdditionalExpenses + totalCustomerReward;
 
     const netProfit = grossProfit + credits - debits;
 
