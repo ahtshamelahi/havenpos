@@ -300,7 +300,7 @@ export default function SaleForm() {
         overallDiscountRatio
       );
 
-      subtotal += c.subtotal - c.discount;
+      subtotal += Math.max(c.subtotal - c.discount, 0);
       taxAmount += c.taxAmount;
       lineTotal += c.lineTotal;
     });
@@ -406,12 +406,12 @@ export default function SaleForm() {
         !/^\d+$/.test(
           String(item.quantity)
         ) ||
-        Number(item.quantity) < 0
+        Number(item.quantity) <= 0
     );
 
     if (invalidQuantity) {
       setError(
-        'Item quantity must be a whole number greater than or equal to 0.'
+        'Every item quantity must be greater than 0.'
       );
       return;
     }

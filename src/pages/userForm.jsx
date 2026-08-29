@@ -15,7 +15,7 @@ const MODULES = [
   'stock',
   'reports',
   'settings',
-  'user_management',
+  //'user_management',
   'pos',
 ];
 

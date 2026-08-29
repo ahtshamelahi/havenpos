@@ -77,15 +77,11 @@ export async function getFifoCosts(businessId, items) {
   //    We need this to know how many units from old batches are already
   //    "consumed" and should be skipped.
   //
-  //    Paginated for the same reason as above. Includes 'returned' and
-  //    'partially_returned' sales alongside confirmed/shipped: this system
-  //    doesn't re-attach returned stock to its original purchase batch (a
-  //    sell_return just adds a generic positive stock_ledger entry), so a
-  //    batch's units are "spent" for FIFO purposes as soon as the ORIGINAL
-  //    sale happens, whether or not it's later returned. Excluding
-  //    returned/partially_returned sales here undercounted "already sold"
-  //    units and caused the FIFO walk to re-consume batches that were
-  //    already spoken for by earlier sales.
+  //    Paginated for the same reason as above. Only confirmed/shipped sales
+  //    count as consumed inventory for FIFO. Returned or partially_returned
+  //    sales are later restored back into stock via stock_ledger, so they
+  //    should not keep consuming the original purchase batches for future
+  //    cost calculations.
   const { data: soldRows, error: soldErr } = await fetchAllBatched(() =>
     supabase
       .from('sale_items')
@@ -98,7 +94,7 @@ export async function getFifoCosts(businessId, items) {
         )
       `)
       .eq('sales.business_id', businessId)
-      .in('sales.status', ['confirmed', 'shipped', 'returned', 'partially_returned'])
+      .in('sales.status', ['confirmed', 'shipped'])
       .in('product_id', productIds)
   );
 

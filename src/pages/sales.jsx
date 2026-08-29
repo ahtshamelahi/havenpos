@@ -747,9 +747,9 @@ export default function Sales() {
       const soldQty = Math.floor(Number(it.quantity || 0));
       const returned = Math.floor(Number(returnAlready[it.id] || 0));
       const remaining = Math.max(0, soldQty - returned);
-      const unitEffective = soldQty > 0 ? Number(it.line_total || 0) / soldQty : 0;
+      const unitEffective = soldQty > 0 ? Math.round((Number(it.line_total || 0) / soldQty) * 100) / 100 : 0;
       const qty = Number(returnQtyMap[it.id] || 0);
-      return { item: it, soldQty, returned, remaining, qty, amount: qty * unitEffective };
+      return { item: it, soldQty, returned, remaining, qty, amount: Math.round((qty * unitEffective) * 100) / 100 };
     });
   }, [returnItems, returnAlready, returnQtyMap]);
 
@@ -845,12 +845,16 @@ export default function Sales() {
       }
 
       const allFullyReturned = returnRows.every((r) => r.returned + r.qty >= r.soldQty);
-      const newDue = Math.max(Number(sale.due_amount || 0) - returnTotal, 0);
+      const adjustedGrandTotal = Math.max(Number(sale.grand_total || 0) - returnTotal, 0);
+      const revisedPaid = Math.max(Number(sale.paid_amount || 0) - returnTotal, 0);
+      const revisedDue = Math.max(adjustedGrandTotal - revisedPaid, 0);
       const { error: saleUpdateErr } = await supabase
         .from('sales')
         .update({
           status: allFullyReturned ? 'returned' : 'partially_returned',
-          due_amount: newDue,
+          grand_total: adjustedGrandTotal,
+          paid_amount: revisedPaid,
+          due_amount: revisedDue,
         })
         .eq('id', sale.id);
       if (saleUpdateErr) throw saleUpdateErr;

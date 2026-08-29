@@ -359,6 +359,7 @@ export default function StockReport() {
   // Loading, data, and configuration states
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
+  const [purchaseItems, setPurchaseItems] = useState([]);
   const [locations, setLocations] = useState([]);
   const [categories, setCategories] = useState([]);
   const [ledger, setLedger] = useState([]);
@@ -391,12 +392,17 @@ export default function StockReport() {
     if (!business?.id) return;
     setLoading(true);
     try {
-      const [prodRes, locRes, catRes, ledgerRes] = await Promise.all([
+      const [prodRes, purchaseItemsRes, locRes, catRes, ledgerRes] = await Promise.all([
         supabase
           .from('products')
           .select('id, name, sku, cost_price, default_selling_price, alert_quantity, category_id')
           .eq('business_id', business.id)
           .eq('is_active', true),
+        fetchAllBatched(() =>
+          supabase
+            .from('purchase_items')
+            .select('product_id, quantity, unit_cost, purchases!inner(location_id, business_id)')
+            .eq('purchases.business_id', business.id)),
         supabase
           .from('locations')
           .select('id, name')
@@ -414,6 +420,7 @@ export default function StockReport() {
       ]);
 
       setProducts(prodRes.data || []);
+      setPurchaseItems(purchaseItemsRes.data || []);
       setLocations(locRes.data || []);
       setCategories(catRes.data || []);
       setLedger(ledgerRes.data || []);
@@ -447,6 +454,26 @@ export default function StockReport() {
     // 1. Calculate stock on hand by Product-Location key
     const onHand = {};
     const salesCount = {}; // product_id : location_id : qty
+    const weightedCostByProductLocation = {};
+
+    const purchaseTotals = {};
+    purchaseItems.forEach((row) => {
+      const pid = Number(row.product_id);
+      const locationId = Number(row.purchases?.location_id ?? 0);
+      const key = `${pid}:${locationId}`;
+      const qty = Number(row.quantity || 0);
+      const unitCost = Number(row.unit_cost || 0);
+      purchaseTotals[key] = {
+        qty: (purchaseTotals[key]?.qty || 0) + qty,
+        value: (purchaseTotals[key]?.value || 0) + qty * unitCost,
+      };
+    });
+
+    Object.entries(purchaseTotals).forEach(([key, totals]) => {
+      const [pid, locationId] = key.split(':');
+      weightedCostByProductLocation[`${Number(pid)}:${Number(locationId)}`] =
+        totals.qty > 0 ? totals.value / totals.qty : 0;
+    });
 
     ledger.forEach((row) => {
       const key = `${row.product_id}:${row.location_id}`;
@@ -489,15 +516,19 @@ export default function StockReport() {
         const qty = onHand[key] || 0;
         const totalSold = Math.max(0, salesCount[key] || 0);
 
+        const avgCost = Number(
+          weightedCostByProductLocation[`${p.id}:${l.id}`] ?? p.cost_price ?? 0
+        );
+
         list.push({
           product: p,
           location: l,
           qty,
           sellingPrice: Number(p.default_selling_price || 0),
-          costPrice: Number(p.cost_price || 0),
-          purchaseValue: qty * Number(p.cost_price || 0),
+          costPrice: avgCost,
+          purchaseValue: qty * avgCost,
           saleValue: qty * Number(p.default_selling_price || 0),
-          potentialProfit: qty * (Number(p.default_selling_price || 0) - Number(p.cost_price || 0)),
+          potentialProfit: qty * (Number(p.default_selling_price || 0) - avgCost),
           totalSold,
           totalTransferred: 0,
           isLow: p.alert_quantity != null && qty <= Number(p.alert_quantity),
@@ -506,7 +537,7 @@ export default function StockReport() {
     });
 
     return list.sort((a, b) => a.product.name.localeCompare(b.product.name));
-  }, [products, locations, ledger, locationFilter, categoryFilter, brandFilter]);
+  }, [products, purchaseItems, locations, ledger, locationFilter, categoryFilter, brandFilter]);
 
   // Compute summary values based on filtered results
   const summary = useMemo(() => {
