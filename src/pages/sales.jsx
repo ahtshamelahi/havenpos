@@ -293,7 +293,7 @@ export default function Sales() {
     () =>
       Object.entries(users)
         .map(([id, name]) => ({
-          id: Number(id),
+          id,
           name,
         }))
         .sort((a, b) =>
@@ -402,7 +402,7 @@ export default function Sales() {
 
       if (
         addedByFilter &&
-        s.created_by !== Number(addedByFilter)
+        String(s.created_by) !== String(addedByFilter)
       ) {
         return false;
       }

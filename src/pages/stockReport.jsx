@@ -401,7 +401,7 @@ export default function StockReport() {
         fetchAllBatched(() =>
           supabase
             .from('purchase_items')
-            .select('product_id, quantity, unit_cost')
+            .select('product_id, quantity, unit_cost, purchases!inner(location_id, business_id)')
             .eq('purchases.business_id', business.id)),
         supabase
           .from('locations')
@@ -454,21 +454,25 @@ export default function StockReport() {
     // 1. Calculate stock on hand by Product-Location key
     const onHand = {};
     const salesCount = {}; // product_id : location_id : qty
-    const weightedCostByProduct = {};
+    const weightedCostByProductLocation = {};
 
     const purchaseTotals = {};
     purchaseItems.forEach((row) => {
       const pid = Number(row.product_id);
+      const locationId = Number(row.purchases?.location_id ?? 0);
+      const key = `${pid}:${locationId}`;
       const qty = Number(row.quantity || 0);
       const unitCost = Number(row.unit_cost || 0);
-      purchaseTotals[pid] = {
-        qty: (purchaseTotals[pid]?.qty || 0) + qty,
-        value: (purchaseTotals[pid]?.value || 0) + qty * unitCost,
+      purchaseTotals[key] = {
+        qty: (purchaseTotals[key]?.qty || 0) + qty,
+        value: (purchaseTotals[key]?.value || 0) + qty * unitCost,
       };
     });
 
-    Object.entries(purchaseTotals).forEach(([pid, totals]) => {
-      weightedCostByProduct[Number(pid)] = totals.qty > 0 ? totals.value / totals.qty : 0;
+    Object.entries(purchaseTotals).forEach(([key, totals]) => {
+      const [pid, locationId] = key.split(':');
+      weightedCostByProductLocation[`${Number(pid)}:${Number(locationId)}`] =
+        totals.qty > 0 ? totals.value / totals.qty : 0;
     });
 
     ledger.forEach((row) => {
@@ -512,7 +516,9 @@ export default function StockReport() {
         const qty = onHand[key] || 0;
         const totalSold = Math.max(0, salesCount[key] || 0);
 
-        const avgCost = Number(weightedCostByProduct[p.id] ?? p.cost_price ?? 0);
+        const avgCost = Number(
+          weightedCostByProductLocation[`${p.id}:${l.id}`] ?? p.cost_price ?? 0
+        );
 
         list.push({
           product: p,

@@ -157,11 +157,11 @@ export default function SellReturnForm({
 
         const unitEffective =
           soldQty > 0
-            ? Number(item.line_total) / soldQty
+            ? Math.round((Number(item.line_total) / soldQty) * 100) / 100
             : 0;
 
         const qty = Number(returnQty[item.id] || 0);
-        const amount = qty * unitEffective;
+        const amount = Math.round((qty * unitEffective) * 100) / 100;
 
         return {
           item,
