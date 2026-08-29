@@ -257,7 +257,10 @@ export function AuthProvider({ children }) {
        * immediately judge this fresh login against an old, expired
        * timestamp and sign the user right back out.
        */
-      if (event === 'SIGNED_IN' && newSession?.user?.id) {
+      if (
+        (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') &&
+        newSession?.user?.id
+      ) {
         clearInactivityTimestamp(newSession.user.id);
       }
 
@@ -361,10 +364,12 @@ export function AuthProvider({ children }) {
           if (
             pending.event === 'SIGNED_OUT'
               ? initialUserId !== null
-              : pendingUserId !== initialUserId
+              : pending.event === 'PASSWORD_RECOVERY' ||
+                pendingUserId !== initialUserId
           ) {
             if (
-              pending.event === 'SIGNED_IN' &&
+              (pending.event === 'SIGNED_IN' ||
+                pending.event === 'PASSWORD_RECOVERY') &&
               pendingUserId
             ) {
               clearInactivityTimestamp(pendingUserId);

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const ACTIVITY_EVENTS = [
@@ -27,12 +27,18 @@ export function clearInactivityTimestamp(userId) {
 // when the browser/tab is reopened or becomes visible again.
 export default function useInactivityLogout(timeoutMs = 600_000) {
   const { session, signOut } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
   // Prevent multiple logout calls from happening at once.
   const loggingOutRef = useRef(false);
 
   useEffect(() => {
+    if (location.pathname === '/reset-password') {
+      loggingOutRef.current = false;
+      return undefined;
+    }
+
     if (!session?.user?.id) {
       loggingOutRef.current = false;
       return undefined;
@@ -221,5 +227,5 @@ export default function useInactivityLogout(timeoutMs = 600_000) {
 
       removeListeners();
     };
-  }, [session?.user?.id, timeoutMs, signOut, navigate]);
+  }, [session?.user?.id, timeoutMs, signOut, navigate, location.pathname]);
 }
