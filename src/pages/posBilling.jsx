@@ -716,30 +716,7 @@ export default function PosBilling() {
   };
 
   const totals = useMemo(() => {
-    let subtotalBeforeOverall = 0;
-    cart.forEach((it) => {
-      const c = computeLine(
-        it,
-        taxRatesById,
-        productsById
-      );
-      subtotalBeforeOverall +=
-        c.subtotal - c.discount;
-    });
-
-    let overallDiscount =
-      Number(discountAmount) || 0;
-
-    if (discountType === 'percentage') {
-      overallDiscount =
-        (subtotalBeforeOverall * overallDiscount) / 100;
-    }
-
-    const overallDiscountRatio =
-      subtotalBeforeOverall > 0
-        ? overallDiscount / subtotalBeforeOverall
-        : 0;
-
+    let subtotal = 0;
     let taxAmount = 0;
     let lineTotal = 0;
 
@@ -747,18 +724,28 @@ export default function PosBilling() {
       const c = computeLine(
         it,
         taxRatesById,
-        productsById,
-        overallDiscountRatio
+        productsById
       );
+
+      subtotal +=
+        c.subtotal - c.discount;
 
       taxAmount += c.taxAmount;
       lineTotal += c.lineTotal;
     });
 
+    let overallDiscount =
+      Number(discountAmount) || 0;
+
+    if (discountType === 'percentage') {
+      overallDiscount =
+        (subtotal * overallDiscount) / 100;
+    }
+
     const shipping =
       Number(shippingCharges) || 0;
 
-    const subtotalR = Number(subtotalBeforeOverall.toFixed(2));
+    const subtotalR = Number(subtotal.toFixed(2));
     const taxR = Number(taxAmount.toFixed(2));
     const discountR =
       Number(overallDiscount.toFixed(2));
@@ -766,8 +753,15 @@ export default function PosBilling() {
       Number(shipping.toFixed(2));
     const lineTotalR = Number(lineTotal.toFixed(2));
 
+    // Use lineTotal (already tax-correct per item, whether the
+    // product's tax is inclusive or exclusive) instead of
+    // subtotal + tax, which double-counted tax for inclusive items.
     const grandTotal =
-      Math.max(lineTotalR, 0) + shippingR;
+      Math.max(
+        lineTotalR - discountR,
+        0
+      ) +
+      shippingR;
 
     const itemCount = cart.reduce(
       (s, it) =>
@@ -825,16 +819,11 @@ export default function PosBilling() {
       return;
     }
 
-    const overallDiscountRatio =
-      totals.subtotal > 0
-        ? totals.overallDiscount / totals.subtotal
-        : 0;
-
     const due = Math.max(
       Math.round(
-        (totals.grandTotal -
-        paidAmountValue) * 100
-      ) / 100,
+        totals.grandTotal -
+        paidAmountValue
+      ),
       0
     );
 
@@ -896,8 +885,7 @@ export default function PosBilling() {
         const c = computeLine(
           it,
           taxRatesById,
-          productsById,
-          overallDiscountRatio
+          productsById
         );
 
         return {
@@ -1147,8 +1135,7 @@ export default function PosBilling() {
         const c = computeLine(
           it,
           taxRatesById,
-          productsById,
-          overallDiscountRatio
+          productsById
         );
 
         return {
@@ -1559,15 +1546,15 @@ export default function PosBilling() {
     const cash = Math.max(
       0,
       Math.round(
-        (Number(splitPay.cash) || 0) * 100
-      ) / 100
+        Number(splitPay.cash) || 0
+      )
     );
 
     const card = Math.max(
       0,
       Math.round(
-        (Number(splitPay.card) || 0) * 100
-      ) / 100
+        Number(splitPay.card) || 0
+      )
     );
 
     const sum = cash + card;

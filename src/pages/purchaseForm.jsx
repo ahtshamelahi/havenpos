@@ -94,8 +94,7 @@ export default function PurchaseForm() {
               sku,
               cost_price,
               default_selling_price,
-              applicable_tax_id,
-              selling_price_tax_type
+              applicable_tax_id
             `)
             .eq('business_id', business.id)
             .eq('is_active', true),
@@ -230,11 +229,6 @@ export default function PurchaseForm() {
     [taxRates]
   );
 
-  const productsById = useMemo(
-    () => Object.fromEntries(products.map((product) => [product.id, product])),
-    [products]
-  );
-
   /*
    * Calculate totals for multiple purchase items
    */
@@ -272,10 +266,10 @@ export default function PurchaseForm() {
       const calculated = computeLine(
         item,
         taxRatesById,
-        productsById,
+        {},
         overallDiscountRatio
       );
-      subtotal += Math.max(calculated.subtotal - calculated.discount, 0);
+      subtotal += calculated.subtotal - calculated.discount;
       taxAmount += calculated.taxAmount;
       lineTotal += calculated.lineTotal;
     });

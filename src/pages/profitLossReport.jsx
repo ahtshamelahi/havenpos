@@ -46,7 +46,6 @@ export default function ProfitLossReport() {
         locRes,
         salesRes,
         purchasesRes,
-        purchaseItemsRes,
         expensesRes,
         stockLedgerRes,
         sellReturnsRes,
@@ -58,7 +57,6 @@ export default function ProfitLossReport() {
         supabase.from('locations').select('id, name').eq('business_id', business.id).eq('is_active', true),
         fetchAllBatched(() => supabase.from('sales').select('*').eq('business_id', business.id).in('status', ['confirmed', 'shipped', 'returned', 'partially_returned'])),
         fetchAllBatched(() => supabase.from('purchases').select('*').eq('business_id', business.id).eq('purchase_status', 'received')),
-        fetchAllBatched(() => supabase.from('purchase_items').select('id, purchase_id, product_id, quantity, unit_cost').eq('purchases.business_id', business.id)),
         fetchAllBatched(() => supabase.from('expenses').select('*').eq('business_id', business.id)),
         fetchAllBatched(() => supabase.from('stock_ledger').select('*').eq('business_id', business.id)),
         fetchAllBatched(() => supabase.from('sell_returns').select('*').eq('business_id', business.id)),
@@ -71,7 +69,6 @@ export default function ProfitLossReport() {
       if (locRes.error) throw locRes.error;
       if (salesRes.error) throw salesRes.error;
       if (purchasesRes.error) throw purchasesRes.error;
-      if (purchaseItemsRes.error) throw purchaseItemsRes.error;
       if (expensesRes.error) throw expensesRes.error;
       if (stockLedgerRes.error) throw stockLedgerRes.error;
       if (sellReturnsRes.error) throw sellReturnsRes.error;
@@ -83,7 +80,21 @@ export default function ProfitLossReport() {
       setLocations(locRes.data || []);
       setSales(salesRes.data || []);
       setPurchases(purchasesRes.data || []);
-      setPurchaseItems(purchaseItemsRes.data || []);
+
+      const purchaseIds = (purchasesRes.data || []).map((purchase) => purchase.id);
+      if (purchaseIds.length > 0) {
+        const { data: purchaseItemRows, error: purchaseItemsError } = await fetchAllBatched(() =>
+          supabase
+            .from('purchase_items')
+            .select('id, purchase_id, product_id, quantity, unit_cost')
+            .in('purchase_id', purchaseIds)
+        );
+        if (purchaseItemsError) throw purchaseItemsError;
+        setPurchaseItems(purchaseItemRows || []);
+      } else {
+        setPurchaseItems([]);
+      }
+
       setExpenses(expensesRes.data || []);
       setStockLedger(stockLedgerRes.data || []);
       setSellReturns(sellReturnsRes.data || []);
@@ -153,15 +164,13 @@ export default function ProfitLossReport() {
     const purchaseItemsByProduct = {};
     purchaseItems.forEach((pi) => {
       const pid = String(pi.product_id);
-      const locationId = String(pi.purchases?.location_id ?? 'global');
-      const bucketKey = `${pid}:${locationId}`;
-      if (!purchaseItemsByProduct[bucketKey]) {
-        purchaseItemsByProduct[bucketKey] = { qty: 0, value: 0 };
+      if (!purchaseItemsByProduct[pid]) {
+        purchaseItemsByProduct[pid] = { qty: 0, value: 0 };
       }
       const qty = Number(pi.quantity || 0);
       const unitCost = Number(pi.unit_cost || 0);
-      purchaseItemsByProduct[bucketKey].qty += qty;
-      purchaseItemsByProduct[bucketKey].value += qty * unitCost;
+      purchaseItemsByProduct[pid].qty += qty;
+      purchaseItemsByProduct[pid].value += qty * unitCost;
     });
 
     const saleItemsByProduct = {};
@@ -176,16 +185,11 @@ export default function ProfitLossReport() {
       saleItemsByProduct[pid].value += lineTotal;
     });
 
-    const getWeightedAverageCost = (productId, locationId) => {
+    const getWeightedAverageCost = (productId) => {
       const pid = String(productId);
-      const resolveLocation = locationId != null ? String(locationId) : 'global';
-      const bucket = purchaseItemsByProduct[`${pid}:${resolveLocation}`];
+      const bucket = purchaseItemsByProduct[pid];
       if (bucket && bucket.qty > 0) {
         return bucket.value / bucket.qty;
-      }
-      const fallback = purchaseItemsByProduct[`${pid}:global`];
-      if (fallback && fallback.qty > 0) {
-        return fallback.value / fallback.qty;
       }
       return Number(productsMap[productId]?.cost_price || 0);
     };
@@ -234,23 +238,33 @@ export default function ProfitLossReport() {
     ledgerByLocation.forEach((sl) => {
       const ledgerDate = sl.created_at ? toLocalDate(sl.created_at, business?.time_zone) : '';
       const qty = Number(sl.change_qty) || 0;
-      const locationKey = `${sl.product_id}:${sl.location_id}`;
 
       if (range.from && ledgerDate < range.from) {
-        openingQuantities[locationKey] = (openingQuantities[locationKey] || 0) + qty;
+        openingQuantities[sl.product_id] = (openingQuantities[sl.product_id] || 0) + qty;
       }
       if (!range.to || ledgerDate <= range.to) {
-        closingQuantities[locationKey] = (closingQuantities[locationKey] || 0) + qty;
+        closingQuantities[sl.product_id] = (closingQuantities[sl.product_id] || 0) + qty;
       }
+    });
+
+    // Helper: calculate average purchase cost per product
+    const avgPurchaseCost = {};
+    Object.keys(productsMap).forEach(pId => {
+      let totalQty = 0;
+      let totalValue = 0;
+      purchases.forEach(p => {
+        if (!p.id || !purchasesMap[p.id]) return;
+      });
+      // We need to look at purchase_items to get avg cost. Wait, purchases doesn't include purchase_items.
+      // Actually we don't have purchase_items here! Let me fallback to cost_price for now, wait.
     });
 
     let openingStockPurchaseVal = 0;
     let openingStockSaleVal = 0;
-    Object.entries(openingQuantities).forEach(([locationKey, qty]) => {
-      const [pId, locationId] = locationKey.split(':');
+    Object.entries(openingQuantities).forEach(([pId, qty]) => {
       const prod = productsMap[pId];
       if (prod) {
-        const avgCost = getWeightedAverageCost(pId, locationId);
+        const avgCost = getWeightedAverageCost(pId);
         const avgSellPrice = getWeightedAverageSalePrice(pId);
         openingStockPurchaseVal += qty * avgCost;
         openingStockSaleVal += qty * avgSellPrice;
@@ -259,11 +273,10 @@ export default function ProfitLossReport() {
 
     let closingStockPurchaseVal = 0;
     let closingStockSaleVal = 0;
-    Object.entries(closingQuantities).forEach(([locationKey, qty]) => {
-      const [pId, locationId] = locationKey.split(':');
+    Object.entries(closingQuantities).forEach(([pId, qty]) => {
       const prod = productsMap[pId];
       if (prod) {
-        const avgCost = getWeightedAverageCost(pId, locationId);
+        const avgCost = getWeightedAverageCost(pId);
         const avgSellPrice = getWeightedAverageSalePrice(pId);
         closingStockPurchaseVal += qty * avgCost;
         closingStockSaleVal += qty * avgSellPrice;

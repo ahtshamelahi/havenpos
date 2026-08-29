@@ -38,14 +38,7 @@ export function computeLine(
     );
 
   if (overallDiscountRatio > 0) {
-    const overallDiscountAmount =
-      net * overallDiscountRatio;
-    discount +=
-      overallDiscountAmount;
-    net = Math.max(
-      net - overallDiscountAmount,
-      0
-    );
+    net = Math.max(net - (net * overallDiscountRatio), 0);
   }
 
   const taxRate =

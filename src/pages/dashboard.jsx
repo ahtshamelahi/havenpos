@@ -246,14 +246,18 @@ export default function Dashboard() {
           )
         ),
 
-        fetchAllBatched(() => {
-          let q = supabase
-            .from('sell_returns')
-            .select('total_amount, sales(location_id)')
-            .eq('business_id', business.id);
-          if (range.from) q = q.gte('return_date', range.from);
-          if (range.to) q = q.lte('return_date', range.to);
-          return fetchAllBatched(() => q).then((res) => ({
+        (async () => {
+          const res = await fetchAllBatched(() => {
+            let q = supabase
+              .from('sell_returns')
+              .select('total_amount, sales(location_id)')
+              .eq('business_id', business.id);
+            if (range.from) q = q.gte('return_date', range.from);
+            if (range.to) q = q.lte('return_date', range.to);
+            return q;
+          });
+
+          return {
             data: (res.data || []).filter((sr) => {
               if (isScopedToLocation) {
                 if (scopedLocationIds.length === 0) return false;
@@ -261,18 +265,23 @@ export default function Dashboard() {
               }
               if (locationFilter) return String(sr.sales?.location_id) === String(locationFilter);
               return true;
-            })
-          }));
-        }),
+            }),
+            error: res.error,
+          };
+        })(),
 
-        fetchAllBatched(() => {
-          let q = supabase
-            .from('purchase_returns')
-            .select('total_amount, purchases(location_id)')
-            .eq('business_id', business.id);
-          if (range.from) q = q.gte('return_date', range.from);
-          if (range.to) q = q.lte('return_date', range.to);
-          return fetchAllBatched(() => q).then((res) => ({
+        (async () => {
+          const res = await fetchAllBatched(() => {
+            let q = supabase
+              .from('purchase_returns')
+              .select('total_amount, purchases(location_id)')
+              .eq('business_id', business.id);
+            if (range.from) q = q.gte('return_date', range.from);
+            if (range.to) q = q.lte('return_date', range.to);
+            return q;
+          });
+
+          return {
             data: (res.data || []).filter((pr) => {
               if (isScopedToLocation) {
                 if (scopedLocationIds.length === 0) return false;
@@ -280,9 +289,10 @@ export default function Dashboard() {
               }
               if (locationFilter) return String(pr.purchases?.location_id) === String(locationFilter);
               return true;
-            })
-          }));
-        }),
+            }),
+            error: res.error,
+          };
+        })(),
 
         fetchAllBatched(() =>
           withScope(

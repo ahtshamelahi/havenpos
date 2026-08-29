@@ -563,14 +563,14 @@ export default function Purchases() {
 
         const unitEffective =
           purchasedQty > 0
-            ? Math.round((Number(it.line_total) / purchasedQty) * 100) / 100
+            ? Number(it.line_total) / purchasedQty
             : 0;
 
         const qty = Number(
           returnQtyMap[it.id] || 0
         );
 
-        const amount = Math.round((qty * unitEffective) * 100) / 100;
+        const amount = qty * unitEffective;
 
         return {
           item: it,
@@ -690,30 +690,6 @@ export default function Purchases() {
         .insert(stockRows);
 
       if (stockErr) throw stockErr;
-
-      const adjustedGrandTotal = Math.max(
-        Number(returnModal.grand_total || 0) - returnTotal,
-        0
-      );
-      const revisedAdvance = Math.max(
-        Number(returnModal.advance_payment || 0) - returnTotal,
-        0
-      );
-      const revisedDue = Math.max(
-        adjustedGrandTotal - revisedAdvance,
-        0
-      );
-
-      const { error: purchaseUpdateErr } = await supabase
-        .from('purchases')
-        .update({
-          advance_payment: revisedAdvance,
-          grand_total: adjustedGrandTotal,
-          due_amount: revisedDue,
-        })
-        .eq('id', returnModal.id);
-
-      if (purchaseUpdateErr) throw purchaseUpdateErr;
 
       if (
         returnModal.supplier_id &&
