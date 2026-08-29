@@ -353,21 +353,7 @@ export default function PosBilling() {
       await loadCatalog();
 
       if (usable.length > 0) {
-        const preferredId =
-          profile.custom_fields
-            ?.default_pos_location_id;
-
-        const preferredValid =
-          preferredId &&
-          usable.some(
-            (l) => l.id === Number(preferredId)
-          );
-
-        setLocationId(
-          preferredValid
-            ? Number(preferredId)
-            : usable[0].id
-        );
+        setLocationId(usable[0].id);
       }
     }
 
