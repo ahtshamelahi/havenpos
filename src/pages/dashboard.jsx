@@ -21,6 +21,7 @@ import {
   DASHBOARD_PRESETS,
 } from '../lib/dateRanges.js';
 import './dashboard.css';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 const CARD_DEFS = [
   {
@@ -69,7 +70,11 @@ const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
   const { business, profile } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const navigate = useNavigate();
+
+  const [locationFilter, setLocationFilter] = useState('');
+  const [locationsList, setLocationsList] = useState([]);
 
   const [preset, setPreset] = useState('today');
   const [range, setRange] = useState(
@@ -169,7 +174,15 @@ export default function Dashboard() {
     }));
   };
 
-  // ---------- Cards ----------
+  useEffect(() => {
+    if (!business?.id) return;
+    supabase
+      .from('locations')
+      .select('id, name')
+      .eq('business_id', business.id)
+      .eq('is_active', true)
+      .then(({ data }) => setLocationsList(data || []));
+  }, [business?.id]);
   useEffect(() => {
     if (!business?.id) return;
 
@@ -178,9 +191,10 @@ export default function Dashboard() {
     async function load() {
       setCardsLoading(true);
 
-      const withDateRange = (
+      const withScope = (
         query,
-        column
+        column,
+        locationCol = 'location_id'
       ) => {
         let q = query;
 
@@ -190,6 +204,12 @@ export default function Dashboard() {
 
         if (range.to) {
           q = q.lte(column, range.to);
+        }
+
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          q = q.in(locationCol, scopedLocationIds);
+        } else if (!isScopedToLocation && locationFilter) {
+          q = q.eq(locationCol, Number(locationFilter));
         }
 
         return q;
@@ -203,7 +223,7 @@ export default function Dashboard() {
         expensesRes,
       ] = await Promise.all([
         fetchAllBatched(() =>
-          withDateRange(
+          withScope(
             supabase
               .from('sales')
               .select('grand_total, due_amount')
@@ -215,7 +235,7 @@ export default function Dashboard() {
         ),
 
         fetchAllBatched(() =>
-          withDateRange(
+          withScope(
             supabase
               .from('purchases')
               .select('grand_total, advance_payment')
@@ -226,28 +246,46 @@ export default function Dashboard() {
           )
         ),
 
-        fetchAllBatched(() =>
-          withDateRange(
-            supabase
-              .from('sell_returns')
-              .select('total_amount')
-              .eq('business_id', business.id),
-            'return_date'
-          )
-        ),
+        fetchAllBatched(() => {
+          let q = supabase
+            .from('sell_returns')
+            .select('total_amount, sales(location_id)')
+            .eq('business_id', business.id);
+          if (range.from) q = q.gte('return_date', range.from);
+          if (range.to) q = q.lte('return_date', range.to);
+          return fetchAllBatched(() => q).then((res) => ({
+            data: (res.data || []).filter((sr) => {
+              if (isScopedToLocation) {
+                if (scopedLocationIds.length === 0) return false;
+                return scopedLocationIds.includes(sr.sales?.location_id);
+              }
+              if (locationFilter) return String(sr.sales?.location_id) === String(locationFilter);
+              return true;
+            })
+          }));
+        }),
+
+        fetchAllBatched(() => {
+          let q = supabase
+            .from('purchase_returns')
+            .select('total_amount, purchases(location_id)')
+            .eq('business_id', business.id);
+          if (range.from) q = q.gte('return_date', range.from);
+          if (range.to) q = q.lte('return_date', range.to);
+          return fetchAllBatched(() => q).then((res) => ({
+            data: (res.data || []).filter((pr) => {
+              if (isScopedToLocation) {
+                if (scopedLocationIds.length === 0) return false;
+                return scopedLocationIds.includes(pr.purchases?.location_id);
+              }
+              if (locationFilter) return String(pr.purchases?.location_id) === String(locationFilter);
+              return true;
+            })
+          }));
+        }),
 
         fetchAllBatched(() =>
-          withDateRange(
-            supabase
-              .from('purchase_returns')
-              .select('total_amount')
-              .eq('business_id', business.id),
-            'return_date'
-          )
-        ),
-
-        fetchAllBatched(() =>
-          withDateRange(
+          withScope(
             supabase
               .from('expenses')
               .select('amount')
@@ -281,7 +319,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [business?.id, range]);
+  }, [business?.id, range, locationFilter]);
 
   // ---------- Sales Graph ----------
   useEffect(() => {
@@ -341,16 +379,24 @@ export default function Dashboard() {
       const endStr =
         toLocalISODate(end);
 
-      const { data } = await fetchAllBatched(() =>
-        supabase
+      const { data } = await fetchAllBatched(() => {
+        let q = supabase
           .from('sales')
           .select('sale_date, grand_total')
           .eq('business_id', business.id)
           .eq('status', 'confirmed')
           .eq('is_active', true)
           .gte('sale_date', startStr)
-          .lte('sale_date', endStr)
-      );
+          .lte('sale_date', endStr);
+
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          q = q.in('location_id', scopedLocationIds);
+        } else if (!isScopedToLocation && locationFilter) {
+          q = q.eq('location_id', Number(locationFilter));
+        }
+
+        return q;
+      });
 
       if (cancelled) return;
 
@@ -485,6 +531,7 @@ export default function Dashboard() {
     graphFilter,
     graphMonth,
     graphYear,
+    locationFilter,
   ]);
 
   // ---------- Live Sections ----------
@@ -883,8 +930,27 @@ export default function Dashboard() {
           </>
         )}
 
+        {isOwner && (
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="dash-filter-select"
+          >
+            <option value="">All Locations</option>
+            {locationsList.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+        )}
+
         <span className="muted dash-filter-note">
-          Data Summary
+          {isOwner
+            ? locationFilter
+              ? `Filtered for ${locationsList.find((l) => String(l.id) === String(locationFilter))?.name || 'Location'}`
+              : 'All Locations Summary'
+            : 'My Location Summary'}
         </span>
       </div>
 

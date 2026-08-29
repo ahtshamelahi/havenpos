@@ -4,11 +4,12 @@ import AppLayout from '../components/AppLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase } from '../lib/supabaseClient';
 import { formatTimestamp } from '../lib/timezone.js';
-
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 export default function Registers() {
   const { business } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState('');
@@ -33,7 +34,12 @@ export default function Registers() {
       .eq('business_id', business.id)
       .order('opened_at', { ascending: false });
 
-    if (locationFilter) query = query.eq('location_id', Number(locationFilter));
+    // Owners use the voluntary filter; staff are auto-scoped
+    if (isScopedToLocation && scopedLocationIds.length > 0) {
+      query = query.in('location_id', scopedLocationIds);
+    } else if (!isScopedToLocation && locationFilter) {
+      query = query.eq('location_id', Number(locationFilter));
+    }
 
     query.then(({ data }) => {
       setRows(data || []);
@@ -57,16 +63,18 @@ export default function Registers() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid var(--navy-border)' }}
-          >
-            <option value="">All locations</option>
-            {locations.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
+          {isOwner && (
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid var(--navy-border)' }}
+            >
+              <option value="">All locations</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          )}
           <button className="btn btn-secondary" onClick={() => window.print()}>🖨 Print</button>
         </div>
       </div>

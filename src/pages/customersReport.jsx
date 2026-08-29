@@ -6,6 +6,7 @@ import { fetchAllBatched } from '../lib/fetchUtils.js';
 import '../components/report-ui.css';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 // CSS styling for premium layout and printer-friendly reports
 const CSS = `
@@ -184,6 +185,7 @@ export default function CustomersReport() {
 
   // Location filter state
   const [locationFilter, setLocationFilter] = useState('');
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   // Load locations and customer metrics once on mount
   useEffect(() => {
@@ -259,8 +261,13 @@ export default function CustomersReport() {
     // sale activity mapping (filtered by location in-memory)
     const activity = {};
     sales.forEach((s) => {
-      // Apply location filter
-      if (locationFilter && s.location_id !== Number(locationFilter)) return;
+      // Apply location filter (owners: use voluntary filter; staff: auto-scope)
+      if (isScopedToLocation) {
+        if (scopedLocationIds.length === 0) return;
+        if (!scopedLocationIds.includes(s.location_id)) return;
+      } else if (locationFilter && s.location_id !== Number(locationFilter)) {
+        return;
+      }
 
       if (!activity[s.customer_id]) {
         activity[s.customer_id] = { count: 0, total: 0, last: null };
@@ -306,21 +313,23 @@ export default function CustomersReport() {
       <div className="cust-rep-container">
         {/* Filter bar */}
         <div className="cust-rep-filters no-print">
-          {/* Location Select Dropdown */}
-          <div className="cust-filter-group" style={{ maxWidth: '280px' }}>
-            <label htmlFor="filter-location">Filter by Location</label>
-            <select
-              id="filter-location"
-              className="cust-select-input"
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            >
-              <option value="">All Locations</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* Location Select Dropdown — owners only */}
+          {isOwner && (
+            <div className="cust-filter-group" style={{ maxWidth: '280px' }}>
+              <label htmlFor="filter-location">Filter by Location</label>
+              <select
+                id="filter-location"
+                className="cust-select-input"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+              >
+                <option value="">All Locations</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Action Row */}
           <div className="cust-btn-row">

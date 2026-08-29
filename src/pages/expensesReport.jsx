@@ -10,6 +10,7 @@ import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 const CSS = `
   .sr-wrapper {
@@ -149,6 +150,7 @@ const CSS = `
 
 export default function ExpensesReport() {
   const { business } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   const [activePreset, setActivePreset] = useState('this_month');
   const [range, setRange] = useState(getPresetRange('this_month', business?.time_zone));
@@ -180,7 +182,12 @@ export default function ExpensesReport() {
       let query = supabase.from('expenses').select('*').eq('business_id', business.id);
       if (range.from) query = query.gte('expense_date', range.from);
       if (range.to) query = query.lte('expense_date', range.to);
-      if (locationId) query = query.eq('location_id', Number(locationId));
+      // Staff: auto-scope to their locations; owners: use optional filter
+      if (isScopedToLocation && scopedLocationIds.length > 0) {
+        query = query.in('location_id', scopedLocationIds);
+      } else if (!isScopedToLocation && locationId) {
+        query = query.eq('location_id', Number(locationId));
+      }
       return query.order('expense_date', { ascending: false });
     };
 
@@ -280,19 +287,21 @@ export default function ExpensesReport() {
           </div>
 
           <div className="sr-toolbar-right">
-            <div className="sr-filter-item">
-              <label>Location</label>
-              <select
-                className="sr-select"
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-              >
-                <option value="">All Locations</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
-            </div>
+            {isOwner && (
+              <div className="sr-filter-item">
+                <label>Location</label>
+                <select
+                  className="sr-select"
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                >
+                  <option value="">All Locations</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button className="btn btn-primary" onClick={handlePrint} style={{ marginRight: '8px' }}>🖨️ Print</button>
             <button className="btn btn-primary" onClick={() => {
               const period = activePreset === 'custom'

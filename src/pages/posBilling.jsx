@@ -338,8 +338,7 @@ export default function PosBilling() {
       );
 
       const usable =
-        profile.is_owner ||
-          assignedIds.size === 0
+        (profile.is_owner || assignedIds.size === 0)
           ? allLocations || []
           : (allLocations || []).filter((l) =>
             assignedIds.has(l.id)
@@ -459,6 +458,13 @@ export default function PosBilling() {
   const customerSearchResults = customers.filter(
     (c) => {
       const q = customerSearch.trim().toLowerCase();
+
+      // For non-owner staff: show customers assigned to this location or global
+      if (!profile?.is_owner && c.location_id) {
+        if (Number(c.location_id) !== Number(locationId)) {
+          return false;
+        }
+      }
 
       return (
         !q ||
@@ -1372,6 +1378,10 @@ export default function PosBilling() {
             newCustomer.contact_number,
           address:
             newCustomer.address,
+          location_id:
+            locationId ? Number(locationId) : null,
+          created_by:
+            profile.id,
         })
         .select()
         .single();

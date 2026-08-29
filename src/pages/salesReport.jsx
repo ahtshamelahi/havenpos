@@ -6,6 +6,7 @@ import { fetchAllBatched } from '../lib/fetchUtils.js';
 import { PRESETS, getPresetRange } from '../lib/dateRanges.js';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 /* ─────────────────────────────────────────────────────────────
    Shared scoped styles — injected once, self-contained.
@@ -139,6 +140,7 @@ const CSS = `
 
 export default function SalesPurchasesReport() {
   const { business } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   /* ── Filters ── */
   const [activePreset, setActivePreset] = useState('this_month');
@@ -172,7 +174,13 @@ export default function SalesPurchasesReport() {
     const applyDateLoc = (q, dateCol) => {
       if (range.from) q = q.gte(dateCol, range.from);
       if (range.to) q = q.lte(dateCol, range.to);
-      if (locationId) q = q.eq('location_id', Number(locationId));
+      // For staff: always scope to their locations.
+      // For owners: apply the optional location filter.
+      if (isScopedToLocation && scopedLocationIds.length > 0) {
+        q = q.in('location_id', scopedLocationIds);
+      } else if (!isScopedToLocation && locationId) {
+        q = q.eq('location_id', Number(locationId));
+      }
       return q;
     };
 
@@ -224,6 +232,10 @@ export default function SalesPurchasesReport() {
       setSales(salesRes.data || []);
 
       const sellReturnsFiltered = (sellRetRes.data || []).filter((sr) => {
+        if (isScopedToLocation) {
+          if (scopedLocationIds.length === 0) return false;
+          return scopedLocationIds.includes(sr.sales?.location_id);
+        }
         if (!locationId) return true;
         return String(sr.sales?.location_id) === String(locationId);
       });
@@ -232,6 +244,10 @@ export default function SalesPurchasesReport() {
       setPurchases(purchRes.data || []);
 
       const purchaseReturnsFiltered = (purchRetRes.data || []).filter((pr) => {
+        if (isScopedToLocation) {
+          if (scopedLocationIds.length === 0) return false;
+          return scopedLocationIds.includes(pr.purchases?.location_id);
+        }
         if (!locationId) return true;
         return String(pr.purchases?.location_id) === String(locationId);
       });
@@ -342,8 +358,8 @@ export default function SalesPurchasesReport() {
               </div>
             )}
 
-            {/* Location filter */}
-            {locations.length > 0 && (
+            {/* Location filter — owners only */}
+            {isOwner && locations.length > 0 && (
               <div className="sr-filter-item">
                 <label htmlFor="sr-loc">Location</label>
                 <select

@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [business, setBusiness] = useState(null);
   const [permissions, setPermissions] = useState([]);
+  const [userLocations, setUserLocations] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(null);
 
@@ -44,6 +45,7 @@ export function AuthProvider({ children }) {
     setProfile(null);
     setBusiness(null);
     setPermissions([]);
+    setUserLocations(null);
     setProfileError(null);
   }, []);
 
@@ -94,7 +96,22 @@ export function AuthProvider({ children }) {
       setProfileError(null);
 
       /*
-       * Load business and permissions in parallel.
+       * Check if the user's account is active.
+       * If not, sign them out immediately and block access.
+       */
+      if (userRow.is_active === false) {
+        // Sign out from Supabase Auth without triggering another auth event loop
+        await supabase.auth.signOut();
+        clearUserData();
+        setProfileError(
+          'Your account has been disabled. Please contact your administrator.'
+        );
+        return false;
+      }
+
+      /*
+       * Load business, permissions, and (for non-owners)
+       * the assigned locations, all in parallel.
        */
       const [
         {
@@ -104,6 +121,10 @@ export function AuthProvider({ children }) {
         {
           data: permissionRows,
           error: permissionError,
+        },
+        {
+          data: locationRows,
+          error: locationError,
         },
       ] = await Promise.all([
         supabase
@@ -116,6 +137,14 @@ export function AuthProvider({ children }) {
           .from('role_permissions')
           .select('*')
           .eq('user_id', userId),
+
+        // For owners, skip the location query (they see everything).
+        userRow.is_owner
+          ? Promise.resolve({ data: null, error: null })
+          : supabase
+              .from('user_locations')
+              .select('location_id')
+              .eq('user_id', userId),
       ]);
 
       /*
@@ -139,6 +168,13 @@ export function AuthProvider({ children }) {
         );
       }
 
+      if (locationError) {
+        console.error(
+          'Failed to load user locations:',
+          locationError
+        );
+      }
+
       /*
        * Only publish the data after all required
        * profile queries have finished.
@@ -146,6 +182,18 @@ export function AuthProvider({ children }) {
       setProfile(userRow);
       setBusiness(businessRow || null);
       setPermissions(permissionRows || []);
+
+      /*
+       * For owners: null means "unrestricted — all locations".
+       * For staff: array of location_id numbers they are assigned to.
+       */
+      if (userRow.is_owner) {
+        setUserLocations(null);
+      } else {
+        setUserLocations(
+          (locationRows || []).map((r) => r.location_id)
+        );
+      }
 
       return true;
     },
@@ -510,6 +558,10 @@ export function AuthProvider({ children }) {
         return false;
       }
 
+      if (module === 'user_management') {
+        return !!profile.is_owner;
+      }
+
       if (profile.is_owner) {
         return true;
       }
@@ -538,6 +590,13 @@ export function AuthProvider({ children }) {
     profile,
     business,
     permissions,
+    /*
+     * userLocations:
+     *   null  — owner/admin (unrestricted, sees all locations)
+     *   []    — staff with no locations assigned yet
+     *   [1,2] — staff locked to these location IDs
+     */
+    userLocations,
 
     loading,
     profileError,

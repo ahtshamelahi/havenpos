@@ -4,6 +4,7 @@ import AppLayout from '../components/AppLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase } from '../lib/supabaseClient';
 import { todayLocal } from '../lib/timezone.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 import './userForm.css';
 
 const emptyForm = (tz) => ({
@@ -16,6 +17,7 @@ export default function RecurringExpenseForm() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const { business } = useAuth();
+  const { isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   const [form, setForm] = useState(emptyForm(business?.time_zone));
   const [locations, setLocations] = useState([]);
@@ -30,9 +32,13 @@ export default function RecurringExpenseForm() {
       supabase.from('locations').select('id, name').eq('business_id', business.id).eq('is_active', true),
       supabase.from('expense_categories').select('id, name').eq('business_id', business.id).order('name'),
     ]).then(([locRes, catRes]) => {
-      setLocations(locRes.data || []);
+      let loadedLocs = locRes.data || [];
+      if (isScopedToLocation) {
+        loadedLocs = loadedLocs.filter((l) => scopedLocationIds.includes(l.id));
+      }
+      setLocations(loadedLocs);
       setCategories(catRes.data || []);
-      if (locRes.data?.length === 1 && !isEdit) setForm((f) => ({ ...f, location_id: locRes.data[0].id }));
+      if (loadedLocs.length > 0 && !isEdit) setForm((f) => ({ ...f, location_id: f.location_id || loadedLocs[0].id }));
     });
   }, [business?.id, isEdit]);
 

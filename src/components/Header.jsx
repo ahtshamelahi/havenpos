@@ -24,14 +24,30 @@ export default function Header({ onMenuClick }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [userLocationName, setUserLocationName] = useState('');
   const profileRef = useRef(null);
   const notifRef = useRef(null);
 
   useEffect(() => {
     if (!business?.id) return;
     loadNotifications();
+
+    if (!profile?.is_owner && profile?.id) {
+      supabase
+        .from('user_locations')
+        .select('location_id, locations(name)')
+        .eq('user_id', profile.id)
+        .limit(1)
+        .then(({ data }) => {
+          if (data && data[0]?.locations?.name) {
+            setUserLocationName(data[0].locations.name);
+          }
+        });
+    } else {
+      setUserLocationName('');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [business?.id]);
+  }, [business?.id, profile?.id]);
 
   const loadNotifications = () => {
     if (!business?.id) return;
@@ -89,7 +105,10 @@ export default function Header({ onMenuClick }) {
       <div className="app-header-left">
         <button className="icon-btn menu-btn" onClick={onMenuClick} aria-label="Toggle menu">☰</button>
         <div className="header-business">
-          <span className="header-business-name">Welcome to {business?.business_name || 'Your Business'}</span>
+          <span className="header-business-name">
+            Welcome, {profile?.first_name || 'User'} {profile?.last_name || ''}
+            {userLocationName ? ` (${userLocationName})` : ''}
+          </span>
           <span className="header-datetime muted">{dateStr} · {timeStr}</span>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/AppLayout.jsx';
 import Pagination from '../components/Pagination.jsx';
@@ -19,11 +19,9 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const canCreate =
-    profile?.is_owner || can('user_management', 'create');
-
-  const canEdit =
-    profile?.is_owner || can('user_management', 'edit');
+  const isOwner = !!profile?.is_owner;
+  const canCreate = isOwner;
+  const canEdit = isOwner;
 
   const load = async () => {
     if (!business?.id) return;
@@ -77,7 +75,13 @@ export default function Users() {
    * - Username
    * - Mobile
    */
-  const search = useDataSearch(rows, [
+  const adminUsers = useMemo(() => rows.filter((r) => r.is_owner), [rows]);
+  const staffUsers = useMemo(() => rows.filter((r) => !r.is_owner), [rows]);
+
+  /*
+   * SEARCH — Staff employees only
+   */
+  const search = useDataSearch(staffUsers, [
     (row) =>
       `${row.first_name || ''} ${row.last_name || ''}`.trim(),
 
@@ -157,16 +161,22 @@ export default function Users() {
     hasPreviousPage,
   } = usePagination(sort.sortedData, 20);
 
+  if (!isOwner) {
+    return (
+      <AppLayout>
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <h2>Access Denied</h2>
+          <p className="muted">Only the main business administrator can access User Management.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="page-header">
         <div>
           <h1>User management</h1>
-
-          <p className="muted">
-            Staff accounts, roles, and module permissions for{' '}
-            {business?.business_name}.
-          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -185,6 +195,74 @@ export default function Users() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Main Admin Section */}
+      {!loading && adminUsers.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 8 }}>
+            Main Administrator / Business Owner
+          </div>
+          {adminUsers.map((admin) => (
+            <div
+              className="card"
+              key={admin.id}
+              style={{
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+                borderLeft: '4px solid var(--navy-800)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: 'var(--navy-800)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 18,
+                    fontWeight: 700,
+                  }}
+                >
+                  {(admin.first_name || 'A').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                      {admin.first_name} {admin.last_name || ''}
+                    </h3>
+                    <span className="badge badge-info">Main Admin</span>
+                    <span className="badge badge-success">Active</span>
+                  </div>
+                  <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                    @{admin.username} {admin.mobile_number ? `· ${admin.mobile_number}` : ''}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => navigate(`/users/${admin.id}`)}
+                >
+                  Edit admin profile
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Staff Employees Table Section */}
+      <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 8 }}>
+        Employees &amp; Staff Accounts
       </div>
 
       <div className="card users-panel">

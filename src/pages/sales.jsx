@@ -15,6 +15,7 @@ import DataSearchBar from '../components/DataSearchBar.jsx';
 import SortableHeader from '../components/SortableHeader.jsx';
 import { getOpenRegisterId } from '../lib/registerUtils.js';
 import { formatTimestamp, todayLocal } from '../lib/timezone.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 
 const STATUS_BADGE = {
@@ -28,6 +29,7 @@ const STATUS_BADGE = {
 
 export default function Sales() {
   const { business, profile, can } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds, hasNoLocations } = useLocationScope();
   const navigate = useNavigate();
 
   const [rows, setRows] = useState([]);
@@ -114,14 +116,19 @@ export default function Sales() {
         error: usersError,
       },
     ] = await Promise.all([
-      fetchAllBatched(() =>
-        supabase
+      fetchAllBatched(() => {
+        let q = supabase
           .from('sales')
           .select('*')
           .eq('business_id', business.id)
           .eq('is_active', true)
-          .order('created_at', { ascending: false })
-      ),
+          .order('created_at', { ascending: false });
+        // Scope to assigned locations for staff
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          q = q.in('location_id', scopedLocationIds);
+        }
+        return q;
+      }),
 
       supabase
         .from('contacts')
@@ -368,7 +375,11 @@ export default function Sales() {
         return false;
       }
 
-      if (
+      if (isScopedToLocation) {
+        // Staff: auto-filter to their assigned locations
+        if (scopedLocationIds.length === 0) return false;
+        if (!scopedLocationIds.includes(s.location_id)) return false;
+      } else if (
         locationFilter &&
         s.location_id !== Number(locationFilter)
       ) {
@@ -992,31 +1003,33 @@ export default function Sales() {
             </option>
           </select>
 
-          <select
-            value={locationFilter}
-            onChange={(e) =>
-              setLocationFilter(e.target.value)
-            }
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
-          >
-            <option value="">
-              All locations
-            </option>
-
-            {locationOptions.map((l) => (
-              <option
-                key={l.id}
-                value={l.id}
-              >
-                {l.name}
+          {isOwner && (
+            <select
+              value={locationFilter}
+              onChange={(e) =>
+                setLocationFilter(e.target.value)
+              }
+              style={{
+                padding: '8px 12px',
+                borderRadius: 6,
+                border:
+                  '1px solid var(--navy-border)',
+              }}
+            >
+              <option value="">
+                All locations
               </option>
-            ))}
-          </select>
+
+              {locationOptions.map((l) => (
+                <option
+                  key={l.id}
+                  value={l.id}
+                >
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           <select
             value={customerFilter}

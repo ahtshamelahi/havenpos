@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabaseClient';
 import { fetchAllBatched } from '../lib/fetchUtils.js';
 import { notifyPaymentDueSupplier } from '../lib/notifications.js';
 import Loader from '../components/Loader.jsx';
+import useLocationScope from '../hooks/useLocationScope.js';
 import './userForm.css';
 
 const round2 = (value) => Math.round((Number(value) || 0) * 100) / 100;
@@ -19,6 +20,7 @@ export default function PurchaseForm() {
   const isEditMode = Boolean(purchaseId);
 
   const { business, profile } = useAuth();
+  const { isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   const [locations, setLocations] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -109,7 +111,10 @@ export default function PurchaseForm() {
         if (productsRes.error) console.error('Products error:', productsRes.error);
         if (taxRatesRes.error) console.error('Tax rates error:', taxRatesRes.error);
 
-        const loadedLocations = locationsRes.data || [];
+        let loadedLocations = locationsRes.data || [];
+        if (isScopedToLocation) {
+          loadedLocations = loadedLocations.filter((l) => scopedLocationIds.includes(l.id));
+        }
         const loadedSuppliers = suppliersRes.data || [];
         const loadedProducts = productsRes.data || [];
         const loadedTaxRates = taxRatesRes.data || [];
@@ -119,8 +124,8 @@ export default function PurchaseForm() {
         setProducts(loadedProducts);
         setTaxRates(loadedTaxRates);
 
-        if (!isEditMode && loadedLocations.length === 1) {
-          setLocationId(String(loadedLocations[0].id));
+        if (!isEditMode && loadedLocations.length > 0) {
+          setLocationId((prev) => prev || String(loadedLocations[0].id));
         }
 
         if (isEditMode) {

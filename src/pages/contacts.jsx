@@ -10,13 +10,17 @@ import useDataSearch from '../hooks/useDataSearch.js';
 import useDataSort from '../hooks/useDataSort.js';
 import DataSearchBar from '../components/DataSearchBar.jsx';
 import SortableHeader from '../components/SortableHeader.jsx';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 export default function Contacts() {
   const { business, can, profile } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState('customer');
   const [rows, setRows] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [locationFilter, setLocationFilter] = useState('');
   const [balances, setBalances] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,15 +39,33 @@ export default function Contacts() {
     setLoading(true);
     setError('');
 
-    const { data, error: err } = await fetchAllBatched(() =>
+    const [
+      { data, error: err },
+      { data: locRows }
+    ] = await Promise.all([
+      fetchAllBatched(() => {
+        let q = supabase
+          .from('contacts')
+          .select('*')
+          .eq('business_id', business.id)
+          .eq('contact_type', tab)
+          .eq('is_active', true)
+          .order('name');
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          q = q.or(`location_id.in.(${scopedLocationIds.join(',')}),location_id.is.null`);
+        } else if (!isScopedToLocation && locationFilter) {
+          q = q.eq('location_id', Number(locationFilter));
+        }
+        return q;
+      }),
       supabase
-        .from('contacts')
-        .select('*')
+        .from('locations')
+        .select('id, name')
         .eq('business_id', business.id)
-        .eq('contact_type', tab)
-        .eq('is_active', true)
-        .order('name')
-    );
+        .eq('is_active', true),
+    ]);
+
+    setLocations(locRows || []);
 
     if (err) {
       setError(err.message);
@@ -118,7 +140,7 @@ export default function Contacts() {
     load();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [business?.id, tab]);
+  }, [business?.id, tab, locationFilter]);
 
   const handleSoftDelete = async (contact) => {
     const confirmed = window.confirm(
@@ -334,11 +356,30 @@ export default function Contacts() {
             </button>
           </div>
 
+          {isOwner && locations.length > 0 && (
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 6,
+                border: '1px solid var(--navy-border)',
+              }}
+            >
+              <option value="">All locations</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <DataSearchBar
             query={search.query}
             setQuery={search.setQuery}
             clearSearch={search.clearSearch}
-            placeholder="Search by name, number, or business name…"
+            placeholder={`Search ${tab}s by name, number, or business…`}
           />
         </div>
 

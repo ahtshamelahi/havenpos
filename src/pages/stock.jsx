@@ -7,9 +7,11 @@ import { checkLowStockDirect } from '../lib/notifications.js';
 import Pagination from '../components/Pagination.jsx';
 import usePagination from '../hooks/usePagination.js';
 import { fetchAllBatched } from '../lib/fetchUtils.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 export default function Stock() {
   const { business, profile, can } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -102,9 +104,13 @@ export default function Stock() {
 
     return out
       .filter(
-        (r) =>
-          !locationFilter ||
-          r.location.id === Number(locationFilter)
+        (r) => {
+          if (isScopedToLocation) {
+            // Staff: restrict to assigned locations only
+            return scopedLocationIds.includes(r.location.id);
+          }
+          return !locationFilter || r.location.id === Number(locationFilter);
+        }
       )
       .filter((r) => {
         const q = search.toLowerCase();
@@ -245,32 +251,34 @@ export default function Stock() {
             }}
           />
 
-          <select
-            value={locationFilter}
-            onChange={(e) => {
-              setLocationFilter(e.target.value);
-              goToPage(1);
-            }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
-          >
-            <option value="">
-              All locations
-            </option>
-
-            {locations.map((l) => (
-              <option
-                key={l.id}
-                value={l.id}
-              >
-                {l.name}
+          {isOwner && (
+            <select
+              value={locationFilter}
+              onChange={(e) => {
+                setLocationFilter(e.target.value);
+                goToPage(1);
+              }}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 6,
+                border:
+                  '1px solid var(--navy-border)',
+              }}
+            >
+              <option value="">
+                All locations
               </option>
-            ))}
-          </select>
+
+              {locations.map((l) => (
+                <option
+                  key={l.id}
+                  value={l.id}
+                >
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {error && (

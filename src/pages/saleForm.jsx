@@ -13,6 +13,7 @@ import { getFifoCosts } from '../lib/fifoCost.js';
 import { fetchAllBatched } from '../lib/fetchUtils.js';
 import Loader from '../components/Loader.jsx';
 import './userForm.css';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 export default function SaleForm() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function SaleForm() {
   const isEditMode = Boolean(editSaleId);
 
   const { business, profile } = useAuth();
+  const { isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   const [locations, setLocations] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -104,14 +106,18 @@ export default function SaleForm() {
         .eq('business_id', business.id)
         .eq('is_active', true),
     ]).then(([locRes, custRes, agentRes, prodRes, taxRes]) => {
-      setLocations(locRes.data || []);
+      let loadedLocations = locRes.data || [];
+      if (isScopedToLocation) {
+        loadedLocations = loadedLocations.filter((l) => scopedLocationIds.includes(l.id));
+      }
+      setLocations(loadedLocations);
       setCustomers(custRes.data || []);
       setAgents(agentRes.data || []);
       setProducts(prodRes.data || []);
       setTaxRates(taxRes.data || []);
 
-      if (locRes.data?.length === 1 && !isEditMode) {
-        setLocationId(String(locRes.data[0].id));
+      if (loadedLocations.length > 0 && !isEditMode) {
+        setLocationId((prev) => prev || String(loadedLocations[0].id));
       }
     });
 

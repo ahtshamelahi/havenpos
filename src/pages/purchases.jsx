@@ -17,6 +17,7 @@ import {
 } from '../lib/notifications.js';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 const STATUS_BADGE = {
   draft: 'badge-warning',
@@ -31,6 +32,7 @@ const PAYMENT_STATUS_BADGE = {
 
 export default function Purchases() {
   const { business, profile, can } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const navigate = useNavigate();
 
   const [rows, setRows] = useState([]);
@@ -80,14 +82,18 @@ export default function Purchases() {
       { data: locRows },
       { data: userRows },
     ] = await Promise.all([
-      fetchAllBatched(() =>
-        supabase
+      fetchAllBatched(() => {
+        let q = supabase
           .from('purchases')
           .select('*')
           .eq('business_id', business.id)
           .eq('is_active', true)
-          .order('created_at', { ascending: false })
-      ),
+          .order('created_at', { ascending: false });
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          q = q.in('location_id', scopedLocationIds);
+        }
+        return q;
+      }),
 
       supabase
         .from('contacts')
@@ -280,8 +286,12 @@ export default function Purchases() {
         String(purchase.supplier_id) === filterSupplierId;
 
       const matchesLocation =
-        !filterLocationId ||
-        String(purchase.location_id) === filterLocationId;
+        isScopedToLocation
+          ? (scopedLocationIds.length === 0
+              ? false
+              : scopedLocationIds.includes(purchase.location_id))
+          : (!filterLocationId ||
+              String(purchase.location_id) === filterLocationId);
 
       const matchesStatus =
         !filterStatus ||
@@ -870,45 +880,47 @@ export default function Purchases() {
             </select>
           </div>
 
-          {/* Location */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 180,
-            }}
-          >
-            <label
-              className="muted"
+          {/* Location — owners only */}
+          {isOwner && (
+            <div
               style={{
-                fontSize: 12,
-                fontWeight: 600,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                minWidth: 180,
               }}
             >
-              Filter by location
-            </label>
+              <label
+                className="muted"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                Filter by location
+              </label>
 
-            <select
-              value={filterLocationId}
-              onChange={(e) =>
-                setFilterLocationId(e.target.value)
-              }
-            >
-              <option value="">
-                All locations
-              </option>
-
-              {locationFilterOptions.map((l) => (
-                <option
-                  key={l.id}
-                  value={l.id}
-                >
-                  {l.name}
+              <select
+                value={filterLocationId}
+                onChange={(e) =>
+                  setFilterLocationId(e.target.value)
+                }
+              >
+                <option value="">
+                  All locations
                 </option>
-              ))}
-            </select>
-          </div>
+
+                {locationFilterOptions.map((l) => (
+                  <option
+                    key={l.id}
+                    value={l.id}
+                  >
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Status */}
           <div

@@ -215,12 +215,16 @@ export default function Sidebar({ open, onClose }) {
   }, [collapsed]);
 
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) =>
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.module === 'user_management') {
+      return !!profile?.is_owner;
+    }
+    return (
       !item.module ||
       profile?.is_owner ||
       can(item.module, 'view')
-  );
+    );
+  });
 
 
   return (

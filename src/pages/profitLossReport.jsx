@@ -7,9 +7,11 @@ import { getPresetRange, PRESETS } from '../lib/dateRanges.js';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
 import { toLocalDate } from '../lib/timezone.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 export default function ProfitLossReport() {
   const { business } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const [range, setRange] = useState(getPresetRange('this_month', business?.time_zone));
   const [activePreset, setActivePreset] = useState('this_month');
   const [locationId, setLocationId] = useState('');
@@ -129,6 +131,10 @@ export default function ProfitLossReport() {
     };
 
     const matchLocation = (itemLocId) => {
+      if (isScopedToLocation) {
+        if (scopedLocationIds.length === 0) return false;
+        return scopedLocationIds.includes(itemLocId);
+      }
       if (!locationId) return true;
       return String(itemLocId) === String(locationId);
     };
@@ -805,20 +811,22 @@ export default function ProfitLossReport() {
               </div>
             )}
 
-            <div className="pl-filter-item">
-              <label htmlFor="pl-loc">Location</label>
-              <select
-                id="pl-loc"
-                className="pl-select-input"
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-              >
-                <option value="">All locations</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
-            </div>
+            {isOwner && (
+              <div className="pl-filter-item">
+                <label htmlFor="pl-loc">Location</label>
+                <select
+                  id="pl-loc"
+                  className="pl-select-input"
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                >
+                  <option value="">All locations</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="pl-filter-item">
               <button

@@ -7,6 +7,7 @@ import { fetchAllBatched } from '../lib/fetchUtils.js';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
 import { formatTimestamp } from '../lib/timezone.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 // Embedded scoped CSS for premium aesthetics, layout stability, and print optimization
 const CSS = `
@@ -364,6 +365,7 @@ export default function StockReport() {
 
   // Main page filters
   const [locationFilter, setLocationFilter] = useState('');
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
   const [categoryFilter, setCategoryFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
 
@@ -475,8 +477,13 @@ export default function StockReport() {
       if (brandFilter && brandName !== brandFilter) return;
 
       locations.forEach((l) => {
-        // Filter by location
-        if (locationFilter && l.id !== Number(locationFilter)) return;
+        // Filter by location (owners: voluntary filter; staff: auto-scope)
+        if (isScopedToLocation) {
+          if (scopedLocationIds.length === 0) return;
+          if (!scopedLocationIds.includes(l.id)) return;
+        } else if (locationFilter && l.id !== Number(locationFilter)) {
+          return;
+        }
 
         const key = `${p.id}:${l.id}`;
         const qty = onHand[key] || 0;
@@ -761,21 +768,23 @@ export default function StockReport() {
             />
             {/* Filters Bar */}
             <div className="stock-rep-filters no-print">
-              {/* Location Select */}
-              <div className="stock-filter-group">
-                <label htmlFor="filter-loc">Location</label>
-                <select
-                  id="filter-loc"
-                  className="stock-select-input"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                >
-                  <option value="">All Locations</option>
-                  {locations.map((l) => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Location Select — owners only */}
+              {isOwner && (
+                <div className="stock-filter-group">
+                  <label htmlFor="filter-loc">Location</label>
+                  <select
+                    id="filter-loc"
+                    className="stock-select-input"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  >
+                    <option value="">All Locations</option>
+                    {locations.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Category Select */}
               <div className="stock-filter-group">

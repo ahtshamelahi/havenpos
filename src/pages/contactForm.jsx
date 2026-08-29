@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/AppLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { supabase } from '../lib/supabaseClient';
+import useLocationScope from '../hooks/useLocationScope.js';
 import './userForm.css';
 
 const emptyForm = {
@@ -19,6 +20,7 @@ const emptyForm = {
   tax_ntn_number: '',
   is_active: true,
   business_name: '',
+  location_id: '',
 };
 
 export default function ContactForm() {
@@ -26,7 +28,10 @@ export default function ContactForm() {
   const [searchParams] = useSearchParams();
   const isEdit = !!id;
   const navigate = useNavigate();
-  const { business } = useAuth();
+  const { business, profile } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
+
+  const [locations, setLocations] = useState([]);
 
   const [form, setForm] = useState({
     ...emptyForm,
@@ -38,6 +43,24 @@ export default function ContactForm() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!business?.id) return;
+
+    supabase
+      .from('locations')
+      .select('id, name')
+      .eq('business_id', business.id)
+      .eq('is_active', true)
+      .then(({ data }) => {
+        let locs = data || [];
+        if (isScopedToLocation) {
+          locs = locs.filter((l) => scopedLocationIds.includes(l.id));
+        }
+        setLocations(locs);
+        if (locs.length > 0 && !isEdit) {
+          setForm((f) => ({ ...f, location_id: f.location_id || String(locs[0].id) }));
+        }
+      });
+
     if (!isEdit) return;
 
     const loadContact = async () => {
@@ -64,6 +87,7 @@ export default function ContactForm() {
           address: data.address || '',
           tax_ntn_number: data.tax_ntn_number || '',
           business_name: data.business_name || '',
+          location_id: data.location_id ? String(data.location_id) : '',
         });
       }
 
@@ -71,7 +95,7 @@ export default function ContactForm() {
     };
 
     loadContact();
-  }, [isEdit, id]);
+  }, [isEdit, id, business?.id]);
 
   const update = (key) => (e) => {
     const value =
@@ -109,6 +133,8 @@ export default function ContactForm() {
         address: form.address.trim() || null,
         city: form.city.trim() || null,
         country: form.country.trim() || null,
+        location_id: form.location_id ? Number(form.location_id) : (isScopedToLocation && scopedLocationIds[0] ? scopedLocationIds[0] : null),
+        created_by: profile?.id || null,
 
         // Only suppliers can have a Tax / NTN number
         tax_ntn_number:
@@ -201,6 +227,24 @@ export default function ContactForm() {
                 </option>
               </select>
             </div>
+
+            {locations.length > 0 && (
+              <div className="field">
+                <label>Assigned Location</label>
+                <select
+                  value={form.location_id}
+                  onChange={update('location_id')}
+                  disabled={isScopedToLocation}
+                >
+                  {isOwner && <option value="">Global / All locations</option>}
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="field">
               <label>Name *</label>

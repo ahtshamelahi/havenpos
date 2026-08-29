@@ -71,7 +71,8 @@ export default function UserForm() {
   const isEdit = !!id;
 
   const navigate = useNavigate();
-  const { business } = useAuth();
+  const { business, profile } = useAuth();
+  const isOwner = !!profile?.is_owner;
 
   const [form, setForm] = useState(emptyForm(business));
   const [bankDetails, setBankDetails] = useState(emptyBankDetails);
@@ -527,6 +528,17 @@ export default function UserForm() {
       setSubmitting(false);
     }
   };
+
+  if (!isOwner) {
+    return (
+      <AppLayout>
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <h2>Access Denied</h2>
+          <p className="muted">Only the main business administrator can add or edit employees.</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (loading) {
     return (

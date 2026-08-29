@@ -7,6 +7,7 @@ import { getPresetRange } from '../lib/dateRanges.js';
 import { todayLocal } from '../lib/timezone.js';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 // ─── Presets ────────────────────────────────────────────────
 const PRESETS = [
@@ -127,6 +128,7 @@ const CSS = `
 // ─── Component ───────────────────────────────────────────────
 export default function DailyItemsReport() {
   const { business } = useAuth();
+  const { isScopedToLocation, scopedLocationIds } = useLocationScope();
   const currency = business?.currency || '';
   const today = todayLocal(business?.time_zone);
 
@@ -154,9 +156,13 @@ export default function DailyItemsReport() {
       const buildQuery = () => {
         let query = supabase
           .from('sale_items')
-          .select('product_id, quantity, unit_price, line_total, sale:sales!inner(sale_date, status, business_id)')
+          .select('product_id, quantity, unit_price, line_total, sale:sales!inner(sale_date, status, business_id, location_id)')
           .eq('sale.business_id', business.id)
           .in('sale.status', ['confirmed', 'shipped', 'partially_returned', 'returned']);
+
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          query = query.in('sale.location_id', scopedLocationIds);
+        }
 
         if (range.from) query = query.gte('sale.sale_date', range.from);
         if (range.to) query = query.lte('sale.sale_date', range.to);

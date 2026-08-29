@@ -19,11 +19,12 @@ import {
   sumAmounts,
 } from '../lib/expenseUtils.js';
 import './expenses.css';
-
 import { todayLocal } from '../lib/timezone.js';
+import useLocationScope from '../hooks/useLocationScope.js';
 
 export default function Expenses() {
   const { business, profile, can } = useAuth();
+  const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
 
   const [rows, setRows] = useState([]);
   const [categoryList, setCategoryList] = useState([]);
@@ -65,13 +66,17 @@ export default function Expenses() {
     setError('');
 
     const [{ data: expenseRows, error: err }, { data: catRows }, { data: locRows }] = await Promise.all([
-      fetchAllBatched(() =>
-        supabase
+      fetchAllBatched(() => {
+        let q = supabase
           .from('expenses')
           .select('*')
           .eq('business_id', business.id)
-          .order('expense_date', { ascending: false })
-      ),
+          .order('expense_date', { ascending: false });
+        if (isScopedToLocation && scopedLocationIds.length > 0) {
+          q = q.in('location_id', scopedLocationIds);
+        }
+        return q;
+      }),
       supabase
         .from('expense_categories')
         .select('id, name')
@@ -101,7 +106,13 @@ export default function Expenses() {
 
     return rows.filter((row) => {
       if (categoryFilter && String(row.category_id) !== String(categoryFilter)) return false;
-      if (locationFilter && String(row.location_id) !== String(locationFilter)) return false;
+      // Location: for staff auto-scope; for owners use optional filter
+      if (isScopedToLocation) {
+        if (scopedLocationIds.length === 0) return false;
+        if (!scopedLocationIds.includes(row.location_id)) return false;
+      } else if (locationFilter && String(row.location_id) !== String(locationFilter)) {
+        return false;
+      }
       if (paymentFilter && row.payment_method !== paymentFilter) return false;
       if (statusFilter && getExpenseStatus(row) !== statusFilter) return false;
       if (!matchesDatePreset(row, datePreset, customRange, business?.time_zone)) return false;
@@ -278,12 +289,14 @@ export default function Expenses() {
               ))}
             </select>
 
-            <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
-              <option value="">All locations</option>
-              {locationList.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
+            {isOwner && (
+              <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+                <option value="">All locations</option>
+                {locationList.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            )}
 
             <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}>
               <option value="">All payment methods</option>

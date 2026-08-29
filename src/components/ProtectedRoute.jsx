@@ -107,6 +107,18 @@ export default function ProtectedRoute({
   }
 
   /*
+   * User account disabled by admin.
+   */
+  if (profile.is_active === false) {
+    return (
+      <Navigate
+        to="/account-inactive"
+        replace
+      />
+    );
+  }
+
+  /*
    * Permission check.
    */
   if (
