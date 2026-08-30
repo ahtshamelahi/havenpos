@@ -332,13 +332,20 @@ export default function ProfitLossReport() {
     const totalSellDiscount = filteredSales.reduce((sum, s) => sum + (Number(s.discount_amount) || 0), 0);
     const totalCustomerReward = 0;
 
-    // Sell/purchase returns are real money movements NOT reflected in
-    // totalSales/totalPurchases (the original sale/purchase's grand_total
-    // is untouched when a return happens later), so — unlike
-    // shipping/discount — they DO belong here.
-    // Purchase return = supplier refunds you = credit (raises profit).
-    // Sell return = you refund a customer = debit (lowers profit).
-    const credits = totalPurchaseReturnVal + sellAdditionalExpenses + totalStockRecovered + totalSellRoundOff;
+    // Sell returns are a real money movement NOT reflected in totalSales
+    // (a sale's grand_total is left untouched when a return happens
+    // later), so — unlike shipping/discount — they DO need to be
+    // subtracted separately below, as a debit.
+    //
+    // Purchase returns are handled differently: purchases.grand_total is
+    // reduced directly at the moment of return (see purchases.jsx
+    // submitReturn), so totalPurchases above — and therefore cogs below —
+    // already excludes the returned value. Folding totalPurchaseReturnVal
+    // into credits here as well would double-count it (once via lower
+    // COGS, once again as a credit). It's still computed above and shown
+    // in the Credit & Closing Stocks card for visibility, just not added
+    // into netProfit a second time.
+    const credits = sellAdditionalExpenses + totalStockRecovered + totalSellRoundOff;
 
     // totalStockAdjustmentVal is intentionally NOT included here. Every
     // adjustment ledger row already changes the product's on-hand quantity,

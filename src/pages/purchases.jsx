@@ -691,23 +691,26 @@ export default function Purchases() {
 
       if (stockErr) throw stockErr;
 
+      // Net purchase amount permanently drops by the returned value — this
+      // matches how "Total Purchase" is read everywhere else in the app
+      // (this list, Dashboard, Purchases Report, P&L all just sum
+      // grand_total). advance_payment is what was actually PAID to the
+      // supplier and must NOT be reduced by a return — doing that here
+      // used to cancel out the due-amount reduction a return is supposed
+      // to cause (due = grand_total - advance_payment, and subtracting
+      // returnTotal from both sides left due almost unchanged).
       const adjustedGrandTotal = Math.max(
         Number(returnModal.grand_total || 0) - returnTotal,
         0
       );
-      const revisedAdvance = Math.max(
-        Number(returnModal.advance_payment || 0) - returnTotal,
-        0
-      );
       const revisedDue = Math.max(
-        adjustedGrandTotal - revisedAdvance,
+        adjustedGrandTotal - Number(returnModal.advance_payment || 0),
         0
       );
 
       const { error: purchaseUpdateErr } = await supabase
         .from('purchases')
         .update({
-          advance_payment: revisedAdvance,
           grand_total: adjustedGrandTotal,
           due_amount: revisedDue,
         })
