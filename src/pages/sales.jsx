@@ -9,6 +9,7 @@ import {
   notifyPaymentDueCustomer,
 } from '../lib/notifications.js';
 import { printSaleInvoice } from '../lib/printInvoice.js';
+import { getFifoCosts } from '../lib/fifoCost.js';
 import useDataSearch from '../hooks/useDataSearch.js';
 import useDataSort from '../hooks/useDataSort.js';
 import DataSearchBar from '../components/DataSearchBar.jsx';
@@ -581,6 +582,34 @@ export default function Sales() {
 
       if (saleItemsError) {
         throw saleItemsError;
+      }
+
+      // Draft/quotation sale_items can carry a stale or missing unit_cost
+      // — stock may have moved between "saved as draft" and "confirmed
+      // now". Resolve real FIFO costs at the moment stock is actually
+      // deducted and persist them onto the rows. Without this, reports
+      // fall back to today's product.cost_price for these items, which
+      // breaks historical accuracy the same way the direct POS-sale path
+      // already guards against.
+      const fifoCosts = await getFifoCosts(
+        business.id,
+        (saleItems || []).map((it) => ({
+          product_id: it.product_id,
+          quantity: it.quantity,
+        }))
+      );
+
+      const unitCostUpdates = (saleItems || []).map((it) =>
+        supabase
+          .from('sale_items')
+          .update({ unit_cost: fifoCosts[it.product_id] ?? 0 })
+          .eq('id', it.id)
+      );
+
+      if (unitCostUpdates.length > 0) {
+        const updateResults = await Promise.all(unitCostUpdates);
+        const failedUpdate = updateResults.find((r) => r.error);
+        if (failedUpdate) throw failedUpdate.error;
       }
 
       const stockRows = (saleItems || []).map(
