@@ -22,8 +22,8 @@ export default function ReportHeader({ title, subtitle, from, to }) {
     <div className="report-header">
       <div className="report-header-top">
         <div>
-          <div className="report-eyebrow">Business Report</div>
-          <div className="report-business-name">{business?.business_name || 'Your Business'}</div>
+          <div className="report-eyebrow" style={{ fontWeight: 800, fontSize: '13px', color: 'var(--navy-700)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PASHA TRADERS APP</div>
+          <div className="report-business-name">{business?.business_name || 'Pasha Traders'}</div>
           {addressLine && <div className="muted report-business-meta">{addressLine}</div>}
           {contactLine && <div className="muted report-business-meta">{contactLine}</div>}
         </div>

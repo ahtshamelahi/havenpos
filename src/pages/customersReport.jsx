@@ -183,11 +183,13 @@ export default function CustomersReport() {
   const [ledger, setLedger] = useState([]);
   const [locations, setLocations] = useState([]);
 
-  // Location filter state
+  // Location and User filter state
   const [locationFilter, setLocationFilter] = useState('');
+  const [users, setUsers] = useState([]);
+  const [userFilter, setUserFilter] = useState('');
   const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
 
-  // Load locations and customer metrics once on mount
+  // Load locations, users, and customer metrics on mount / filter change
   useEffect(() => {
     if (!business?.id) return;
 
@@ -203,26 +205,43 @@ export default function CustomersReport() {
 
     const loadData = async () => {
       try {
-        // 1. Fetch all customer contacts
-        const { data: custRows } = await fetchAllBatched(() =>
-          supabase
-            .from('contacts')
-            .select('*')
-            .eq('business_id', business.id)
-            .eq('contact_type', 'customer')
-        );
-        setCustomers(custRows || []);
+        const [
+          { data: custRows },
+          { data: saleRows },
+          { data: userRows }
+        ] = await Promise.all([
+          fetchAllBatched(() => {
+            let q = supabase
+              .from('contacts')
+              .select('*')
+              .eq('business_id', business.id)
+              .eq('contact_type', 'customer');
 
-        // 2. Query all confirmed sales (all time, filtered by location in-memory)
-        const { data: saleRows } = await fetchAllBatched(() =>
+            if (!isOwner && profile?.id) {
+              q = q.eq('created_by', profile.id);
+            } else if (isOwner && userFilter) {
+              q = q.eq('created_by', userFilter);
+            }
+
+            return q;
+          }),
+          fetchAllBatched(() =>
+            supabase
+              .from('sales')
+              .select('customer_id, location_id, grand_total, sale_date, status')
+              .eq('business_id', business.id)
+              .in('status', ['confirmed', 'shipped', 'returned', 'partially_returned'])
+              .not('customer_id', 'is', null)
+          ),
           supabase
-            .from('sales')
-            .select('customer_id, location_id, grand_total, sale_date, status')
+            .from('users')
+            .select('id, first_name, last_name, username')
             .eq('business_id', business.id)
-            .in('status', ['confirmed', 'shipped', 'returned', 'partially_returned'])
-            .not('customer_id', 'is', null)
-        );
+        ]);
+
+        setCustomers(custRows || []);
         setSales(saleRows || []);
+        setUsers(userRows || []);
 
         // 3. Query ledger details for outstanding balance calculations
         const ids = (custRows || []).map((c) => c.id);
@@ -297,12 +316,26 @@ export default function CustomersReport() {
     const totalCustomersCount = customers.length;
 
     return {
-      totalSales,
-      activeCustomers,
-      totalOwed,
-      totalCustomersCount,
+      count: computedRows.length,
+      totalSpent,
+      totalOrders,
+      totalDue,
     };
-  }, [computedRows, customers]);
+  }, [computedRows]);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--navy-muted)' }}>
+          Loading customers report…
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const selectedUserName = userFilter
+    ? ([users.find((u) => String(u.id) === String(userFilter))?.first_name, users.find((u) => String(u.id) === String(userFilter))?.last_name].filter(Boolean).join(' ') || 'Selected User')
+    : 'All Users';
 
   const cur = business?.currency || '';
   const fmt = (n) => `${cur} ${Number(n).toFixed(2)}`;
@@ -315,7 +348,7 @@ export default function CustomersReport() {
         <div className="cust-rep-filters no-print">
           {/* Location Select Dropdown — owners only */}
           {isOwner && (
-            <div className="cust-filter-group" style={{ maxWidth: '280px' }}>
+            <div className="cust-filter-group" style={{ maxWidth: '240px' }}>
               <label htmlFor="filter-location">Filter by Location</label>
               <select
                 id="filter-location"
@@ -331,6 +364,27 @@ export default function CustomersReport() {
             </div>
           )}
 
+          {/* User Select Dropdown — owners only */}
+          {isOwner && users.length > 0 && (
+            <div className="cust-filter-group" style={{ maxWidth: '240px' }}>
+              <label htmlFor="filter-user">Filter by User</label>
+              <select
+                id="filter-user"
+                className="cust-select-input"
+                value={userFilter}
+                onChange={(e) => setUserFilter(e.target.value)}
+              >
+                <option value="">All Users</option>
+                {users.map((u) => {
+                  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Staff';
+                  return (
+                    <option key={u.id} value={u.id}>{name}</option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
           {/* Action Row */}
           <div className="cust-btn-row">
             <button className="btn btn-secondary btn-sm" onClick={() => window.print()} style={{ marginRight: '8px' }}>
@@ -338,7 +392,7 @@ export default function CustomersReport() {
             </button>
             <button className="btn btn-primary btn-sm" onClick={() => {
               const locName = locationFilter ? (locations.find(l => String(l.id) === String(locationFilter))?.name || 'Unknown') : 'All Locations';
-              downloadPDF(buildPdfFilename('Customers Report', [{ value: locName }]));
+              downloadPDF(buildPdfFilename('Customers Report', [{ value: locName }, { value: selectedUserName }]));
             }}>
               📄 Save PDF
             </button>
@@ -352,6 +406,10 @@ export default function CustomersReport() {
             {
               label: 'Location',
               value: locationFilter ? (locations.find(l => String(l.id) === String(locationFilter))?.name || 'Unknown') : 'All Locations',
+            },
+            {
+              label: 'User',
+              value: selectedUserName,
             },
           ]}
         />

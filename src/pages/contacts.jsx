@@ -21,6 +21,9 @@ export default function Contacts() {
   const [rows, setRows] = useState([]);
   const [locations, setLocations] = useState([]);
   const [locationFilter, setLocationFilter] = useState('');
+  const [usersMap, setUsersMap] = useState({});
+  const [usersList, setUsersList] = useState([]);
+  const [userFilter, setUserFilter] = useState('');
   const [balances, setBalances] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +44,8 @@ export default function Contacts() {
 
     const [
       { data, error: err },
-      { data: locRows }
+      { data: locRows },
+      { data: userRows }
     ] = await Promise.all([
       fetchAllBatched(() => {
         let q = supabase
@@ -51,6 +55,14 @@ export default function Contacts() {
           .eq('contact_type', tab)
           .eq('is_active', true)
           .order('name');
+
+        // Scope by user: non-owners only see their own contacts
+        if (!isOwner && profile?.id) {
+          q = q.eq('created_by', profile.id);
+        } else if (isOwner && userFilter) {
+          q = q.eq('created_by', userFilter);
+        }
+
         if (isScopedToLocation && scopedLocationIds.length > 0) {
           q = q.or(`location_id.in.(${scopedLocationIds.join(',')}),location_id.is.null`);
         } else if (!isScopedToLocation && locationFilter) {
@@ -63,9 +75,22 @@ export default function Contacts() {
         .select('id, name')
         .eq('business_id', business.id)
         .eq('is_active', true),
+      supabase
+        .from('users')
+        .select('id, first_name, last_name, username')
+        .eq('business_id', business.id),
     ]);
 
     setLocations(locRows || []);
+
+    const uMap = {};
+    const uList = userRows || [];
+    uList.forEach((u) => {
+      const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Staff';
+      uMap[u.id] = displayName;
+    });
+    setUsersMap(uMap);
+    setUsersList(uList);
 
     if (err) {
       setError(err.message);
@@ -140,7 +165,7 @@ export default function Contacts() {
     load();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [business?.id, tab, locationFilter]);
+  }, [business?.id, tab, locationFilter, userFilter]);
 
   const handleSoftDelete = async (contact) => {
     const confirmed = window.confirm(
@@ -194,7 +219,7 @@ export default function Contacts() {
   const sortFields = [
     {
       key: 'id',
-      label: 'Contact ID',
+      label: 'ID',
       type: 'number',
     },
 
@@ -205,15 +230,36 @@ export default function Contacts() {
     },
 
     {
-      key: 'business_name',
-      label: 'Business name',
-      type: 'text',
+      key: 'balance',
+      label: 'Balance',
+      type: 'number',
+      getValue: (contact) =>
+        balances[contact.id] || 0,
     },
 
     {
       key: 'contact_number',
-      label: 'Contact number',
+      label: 'Contact',
       type: 'text',
+    },
+
+    {
+      key: 'address',
+      label: 'Address',
+      type: 'text',
+    },
+
+    {
+      key: 'created_by',
+      label: 'Created by',
+      type: 'text',
+      getValue: (c) => usersMap[c.created_by] || '—',
+    },
+
+    {
+      key: 'created_at',
+      label: 'Added on',
+      type: 'date',
     },
 
     {
@@ -226,31 +272,16 @@ export default function Contacts() {
       ? [
         {
           key: 'tax_ntn_number',
-          label: 'NTN number',
+          label: 'NTN',
+          type: 'text',
+        },
+        {
+          key: 'business_name',
+          label: 'Business',
           type: 'text',
         },
       ]
       : []),
-
-    {
-      key: 'created_at',
-      label: 'Added on',
-      type: 'date',
-    },
-
-    {
-      key: 'address',
-      label: 'Address',
-      type: 'text',
-    },
-
-    {
-      key: 'balance',
-      label: 'Balance',
-      type: 'number',
-      getValue: (contact) =>
-        balances[contact.id] || 0,
-    },
   ];
 
   const sort = useDataSort(
@@ -293,8 +324,9 @@ export default function Contacts() {
     );
   };
 
+  // columns: ID | Actions | Name | Balance | Contact | Address | CreatedBy | AddedOn | Email [| NTN | Business]
   const tableColumnCount =
-    tab === 'supplier' ? 10 : 9;
+    tab === 'supplier' ? 11 : 9;
 
   return (
     <AppLayout>
@@ -375,6 +407,28 @@ export default function Contacts() {
             </select>
           )}
 
+          {isOwner && usersList.length > 0 && (
+            <select
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 6,
+                border: '1px solid var(--navy-border)',
+              }}
+            >
+              <option value="">All users</option>
+              {usersList.map((u) => {
+                const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Staff';
+                return (
+                  <option key={u.id} value={u.id}>
+                    {name}
+                  </option>
+                );
+              })}
+            </select>
+          )}
+
           <DataSearchBar
             query={search.query}
             setQuery={search.setQuery}
@@ -395,16 +449,33 @@ export default function Contacts() {
         )}
 
         <div className="table-scroll">
-          <table className="data-table">
+          <table className="data-table" style={{ fontSize: '13px', tableLayout: 'fixed', width: '100%' }}>
+            {/* Fixed-width column definitions for strict alignment */}
+            <colgroup>
+              <col style={{ width: '52px' }} />{/* ID */}
+              <col style={{ width: '80px' }} />{/* Actions */}
+              <col style={{ width: '160px' }} />{/* Name */}
+              <col style={{ width: '110px' }} />{/* Balance */}
+              <col style={{ width: '130px' }} />{/* Contact */}
+              <col style={{ width: '70px' }} />{/* Address */}
+              <col style={{ width: '110px' }} />{/* Created by */}
+              <col style={{ width: '100px' }} />{/* Added on */}
+              <col />{/* Email — takes remaining space */}
+              {tab === 'supplier' && <col style={{ width: '110px' }} />}{/* NTN */}
+              {tab === 'supplier' && <col style={{ width: '130px' }} />}{/* Business */}
+            </colgroup>
             <thead>
               <tr>
                 <SortableHeader
-                  label="Contact ID"
+                  label="ID"
                   sortKey="id"
                   currentSortKey={sort.sortKey}
                   sortDirection={sort.sortDirection}
                   toggleSortKey={sort.toggleSortKey}
                 />
+
+                {/* Fixed actions header — empty, no sort */}
+                <th style={{ padding: '8px 12px' }}></th>
 
                 <SortableHeader
                   label="Name"
@@ -415,16 +486,40 @@ export default function Contacts() {
                 />
 
                 <SortableHeader
-                  label="Business name"
-                  sortKey="business_name"
+                  label="Balance"
+                  sortKey="balance"
                   currentSortKey={sort.sortKey}
                   sortDirection={sort.sortDirection}
                   toggleSortKey={sort.toggleSortKey}
                 />
 
                 <SortableHeader
-                  label="Contact number"
+                  label="Contact"
                   sortKey="contact_number"
+                  currentSortKey={sort.sortKey}
+                  sortDirection={sort.sortDirection}
+                  toggleSortKey={sort.toggleSortKey}
+                />
+
+                <SortableHeader
+                  label="Addr"
+                  sortKey="address"
+                  currentSortKey={sort.sortKey}
+                  sortDirection={sort.sortDirection}
+                  toggleSortKey={sort.toggleSortKey}
+                />
+
+                <SortableHeader
+                  label="Created by"
+                  sortKey="created_by"
+                  currentSortKey={sort.sortKey}
+                  sortDirection={sort.sortDirection}
+                  toggleSortKey={sort.toggleSortKey}
+                />
+
+                <SortableHeader
+                  label="Added on"
+                  sortKey="created_at"
                   currentSortKey={sort.sortKey}
                   sortDirection={sort.sortDirection}
                   toggleSortKey={sort.toggleSortKey}
@@ -439,40 +534,23 @@ export default function Contacts() {
                 />
 
                 {tab === 'supplier' && (
-                  <SortableHeader
-                    label="NTN number"
-                    sortKey="tax_ntn_number"
-                    currentSortKey={sort.sortKey}
-                    sortDirection={sort.sortDirection}
-                    toggleSortKey={sort.toggleSortKey}
-                  />
+                  <>
+                    <SortableHeader
+                      label="NTN"
+                      sortKey="tax_ntn_number"
+                      currentSortKey={sort.sortKey}
+                      sortDirection={sort.sortDirection}
+                      toggleSortKey={sort.toggleSortKey}
+                    />
+                    <SortableHeader
+                      label="Business"
+                      sortKey="business_name"
+                      currentSortKey={sort.sortKey}
+                      sortDirection={sort.sortDirection}
+                      toggleSortKey={sort.toggleSortKey}
+                    />
+                  </>
                 )}
-
-                <SortableHeader
-                  label="Added on"
-                  sortKey="created_at"
-                  currentSortKey={sort.sortKey}
-                  sortDirection={sort.sortDirection}
-                  toggleSortKey={sort.toggleSortKey}
-                />
-
-                <SortableHeader
-                  label="Address"
-                  sortKey="address"
-                  currentSortKey={sort.sortKey}
-                  sortDirection={sort.sortDirection}
-                  toggleSortKey={sort.toggleSortKey}
-                />
-
-                <SortableHeader
-                  label="Balance"
-                  sortKey="balance"
-                  currentSortKey={sort.sortKey}
-                  sortDirection={sort.sortDirection}
-                  toggleSortKey={sort.toggleSortKey}
-                />
-
-                <th></th>
               </tr>
             </thead>
 
@@ -502,132 +580,163 @@ export default function Contacts() {
 
               {!loading &&
                 paginatedItems.map((contact) => (
-                  <tr key={contact.id}>
-                    <td>
-                      #{contact.id}
+                  <tr key={contact.id} style={{ verticalAlign: 'middle' }}>
+
+                    {/* ID — fixed narrow column */}
+                    <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--navy-muted)', fontSize: '12px' }}>
+                        #{contact.id}
+                      </span>
                     </td>
 
-                    <td>
-                      {contact.name}
+                    {/* Actions — fixed column, always same width */}
+                    <td style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                      {canEdit ? (
+                        <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <button
+                            className="contact-link-btn"
+                            onClick={() => navigate(`/contacts/${contact.id}`)}
+                            title="Edit"
+                          >
+                            Edit
+                          </button>
+                          <span style={{ color: 'var(--navy-border)', fontSize: '11px', userSelect: 'none' }}>·</span>
+                          <button
+                            className="contact-link-btn contact-link-btn--danger"
+                            onClick={() => handleSoftDelete(contact)}
+                            disabled={deletingId === contact.id}
+                            title="Delete"
+                          >
+                            {deletingId === contact.id ? '…' : 'Del'}
+                          </button>
+                        </span>
+                      ) : null}
                     </td>
 
+                    {/* Name */}
                     <td>
-                      {contact.business_name ||
-                        '—'}
+                      <span style={{ fontWeight: 500 }}>{contact.name}</span>
                     </td>
 
-                    <td>
-                      {contact.contact_number}
+                    {/* Balance */}
+                    <td style={{ whiteSpace: 'nowrap', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{
+                        fontWeight: 600,
+                        color: (balances[contact.id] || 0) < 0
+                          ? 'var(--error-color, #e05252)'
+                          : (balances[contact.id] || 0) > 0
+                            ? 'var(--success-color, #36b37e)'
+                            : 'inherit'
+                      }}>
+                        {business?.currency} {(balances[contact.id] || 0).toFixed(2)}
+                      </span>
                     </td>
 
-                    <td>
-                      {contact.email || '—'}
+                    {/* Contact number */}
+                    <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                      {contact.contact_number || '—'}
                     </td>
 
-                    {tab === 'supplier' && (
-                      <td>
-                        {contact.tax_ntn_number ||
-                          '—'}
-                      </td>
-                    )}
-
-                    <td>
-                      {formatDate(
-                        contact.created_at
-                      )}
-                    </td>
-
+                    {/* Address */}
                     <td>
                       {contact.address ? (
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() =>
-                            setSelectedAddress(
-                              contact
-                            )
-                          }
+                          className="contact-link-btn"
+                          onClick={() => setSelectedAddress(contact)}
                         >
-                          View address
+                          View
                         </button>
                       ) : (
-                        '—'
+                        <span style={{ color: 'var(--navy-muted)' }}>—</span>
                       )}
                     </td>
 
-                    <td>
-                      {business?.currency}{' '}
-                      {(
-                        balances[contact.id] || 0
-                      ).toFixed(2)}
+                    {/* Created by */}
+                    <td style={{ color: 'var(--navy-muted)', fontSize: '12px' }}>
+                      {usersMap[contact.created_by] || '—'}
                     </td>
 
-                    <td className="table-actions">
-                      {canEdit && (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() =>
-                            navigate(
-                              `/contacts/${contact.id}`
-                            )
-                          }
-                        >
-                          Edit
-                        </button>
-                      )}
+                    {/* Added on */}
+                    <td style={{ whiteSpace: 'nowrap', color: 'var(--navy-muted)', fontSize: '12px' }}>
+                      {formatDate(contact.created_at)}
+                    </td>
 
-                      {canEdit && (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() =>
-                            handleSoftDelete(
-                              contact
-                            )
-                          }
-                          disabled={
-                            deletingId ===
-                            contact.id
-                          }
-                        >
-                          {deletingId ===
-                            contact.id
-                            ? 'Deleting…'
-                            : 'Delete'}
-                        </button>
+                    {/* Email */}
+                    <td style={{ fontSize: '12px', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {contact.email ? (
+                        <a href={`mailto:${contact.email}`} style={{ color: 'inherit', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+                          {contact.email}
+                        </a>
+                      ) : (
+                        <span style={{ color: 'var(--navy-muted)' }}>—</span>
                       )}
                     </td>
+
+                    {/* Supplier-only columns */}
+                    {tab === 'supplier' && (
+                      <>
+                        <td style={{ fontSize: '12px' }}>
+                          {contact.tax_ntn_number || <span style={{ color: 'var(--navy-muted)' }}>—</span>}
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--navy-muted)' }}>
+                          {contact.business_name || '—'}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
 
-              {!loading &&
-                paginatedItems.length > 0 && (
-                  <tr className="table-total-row">
-                    <td
-                      colSpan={
-                        tab === 'supplier'
-                          ? 8
-                          : 7
-                      }
-                    >
-                      <strong>
-                        Total for current page
-                      </strong>
-                    </td>
-
-                    <td>
-                      <strong>
-                        {business?.currency}{' '}
-                        {currentPageBalanceTotal.toFixed(
-                          2
-                        )}
-                      </strong>
-                    </td>
-
-                    <td></td>
-                  </tr>
-                )}
+              {!loading && paginatedItems.length > 0 && (
+                <tr className="table-total-row">
+                  {/* span: ID + Actions + Name cols = 3, then Balance at col 4 */}
+                  <td colSpan={3}>
+                    <strong>Total for current page</strong>
+                  </td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                    <strong>
+                      {business?.currency} {currentPageBalanceTotal.toFixed(2)}
+                    </strong>
+                  </td>
+                  <td colSpan={tab === 'supplier' ? 7 : 5}></td>
+                </tr>
+              )}
             </tbody>
           </table>
+
+          <style>{`
+            .contact-link-btn {
+              background: none;
+              border: none;
+              cursor: pointer;
+              font-size: 11.5px;
+              font-weight: 500;
+              padding: 1px 3px;
+              border-radius: 3px;
+              color: var(--primary-color, #4f6ef7);
+              transition: background 0.15s, color 0.15s;
+              line-height: 1.5;
+            }
+            .contact-link-btn:hover {
+              background: rgba(79,110,247,0.1);
+              color: var(--primary-color, #4f6ef7);
+            }
+            .contact-link-btn--danger {
+              color: var(--error-color, #e05252);
+            }
+            .contact-link-btn--danger:hover {
+              background: rgba(224,82,82,0.1);
+              color: var(--error-color, #e05252);
+            }
+            .contact-link-btn:disabled {
+              opacity: 0.45;
+              cursor: not-allowed;
+            }
+            .data-table td, .data-table th {
+              padding: 8px 12px;
+              line-height: 1.4;
+            }
+          `}</style>
         </div>
 
         <Pagination

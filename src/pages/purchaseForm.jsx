@@ -79,12 +79,18 @@ export default function PurchaseForm() {
             .eq('business_id', business.id)
             .eq('is_active', true),
 
-          supabase
-            .from('contacts')
-            .select('id, name')
-            .eq('business_id', business.id)
-            .eq('contact_type', 'supplier')
-            .eq('is_active', true),
+          (() => {
+            let q = supabase
+              .from('contacts')
+              .select('id, name')
+              .eq('business_id', business.id)
+              .eq('contact_type', 'supplier')
+              .eq('is_active', true);
+            if (!profile?.is_owner) {
+              q = q.eq('created_by', profile.id);
+            }
+            return q;
+          })(),
 
           supabase
             .from('products')

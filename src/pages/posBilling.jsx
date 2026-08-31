@@ -318,12 +318,18 @@ export default function PosBilling() {
           .eq('business_id', business.id)
           .eq('is_active', true),
 
-        supabase
-          .from('contacts')
-          .select('id, name, address, contact_number')
-          .eq('business_id', business.id)
-          .eq('contact_type', 'customer')
-          .eq('is_active', true),
+        (() => {
+          let q = supabase
+            .from('contacts')
+            .select('id, name, address, contact_number')
+            .eq('business_id', business.id)
+            .eq('contact_type', 'customer')
+            .eq('is_active', true);
+          if (!profile?.is_owner) {
+            q = q.eq('created_by', profile.id);
+          }
+          return q;
+        })(),
 
         supabase
           .from('expense_categories')
@@ -1348,9 +1354,12 @@ export default function PosBilling() {
 
     setModalError('');
 
+    const trimmedName = newCustomer.name?.trim();
+    const trimmedNumber = newCustomer.contact_number?.trim();
+
     if (
-      !newCustomer.name ||
-      !newCustomer.contact_number
+      !trimmedName ||
+      !trimmedNumber
     ) {
       setModalError(
         'Name and contact number are required.'
@@ -1362,6 +1371,31 @@ export default function PosBilling() {
     setModalSubmitting(true);
 
     try {
+      const targetLocationId = locationId ? Number(locationId) : null;
+
+      // Pre-check for duplicate contact number within the SAME location
+      let dupQuery = supabase
+        .from('contacts')
+        .select('id')
+        .eq('business_id', business.id)
+        .eq('contact_number', trimmedNumber);
+
+      if (targetLocationId) {
+        dupQuery = dupQuery.eq('location_id', targetLocationId);
+      } else {
+        dupQuery = dupQuery.is('location_id', null);
+      }
+
+      const { data: existing } = await dupQuery;
+
+      if (existing && existing.length > 0) {
+        setModalError(
+          'A customer/contact with this contact number already exists at this location. Please enter a unique contact number.'
+        );
+        setModalSubmitting(false);
+        return;
+      }
+
       const {
         data,
         error: err,
@@ -1372,13 +1406,13 @@ export default function PosBilling() {
             business.id,
           contact_type:
             'customer',
-          name: newCustomer.name,
+          name: trimmedName,
           contact_number:
-            newCustomer.contact_number,
+            trimmedNumber,
           address:
-            newCustomer.address,
+            newCustomer.address?.trim() || null,
           location_id:
-            locationId ? Number(locationId) : null,
+            targetLocationId,
           created_by:
             profile.id,
         })
@@ -1403,10 +1437,20 @@ export default function PosBilling() {
 
       setActiveModal(null);
     } catch (err) {
-      setModalError(
-        err.message ||
-        'Could not add this customer.'
-      );
+      if (
+        err.code === '23505' ||
+        err.message?.includes('uq_contacts_business_contact_number') ||
+        err.message?.includes('unique constraint')
+      ) {
+        setModalError(
+          'A customer/contact with this contact number already exists. Please enter a unique contact number.'
+        );
+      } else {
+        setModalError(
+          err.message ||
+          'Could not add this customer.'
+        );
+      }
     } finally {
       setModalSubmitting(false);
     }

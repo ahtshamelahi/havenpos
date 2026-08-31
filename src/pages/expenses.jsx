@@ -246,7 +246,8 @@ export default function Expenses() {
         </div>
 
         <div className="expenses-print-header">
-          <h1>Expenses — {business?.business_name}</h1>
+          <div style={{ fontWeight: 800, fontSize: '13px', color: 'var(--navy-700)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PASHA TRADERS APP</div>
+          <h1>Expenses — {business?.business_name || 'Pasha Traders'}</h1>
           <p className="muted">{filtered.length} record(s)</p>
         </div>
 

@@ -56,8 +56,8 @@ export default function PrintReportHeader({ title, filters = [], location }) {
       {/* ── Top row: business info LEFT, generated time RIGHT ── */}
       <div className="prh-top">
         <div className="prh-biz">
-          <div className="prh-eyebrow">Business Report</div>
-          <div className="prh-biz-name">{business?.business_name || 'Your Business'}</div>
+          <div className="prh-eyebrow" style={{ fontWeight: 800, fontSize: '13px', color: '#1e3a5f', letterSpacing: '0.08em', textTransform: 'uppercase' }}>PASHA TRADERS APP</div>
+          <div className="prh-biz-name">{business?.business_name || 'Pasha Traders'}</div>
           {addressLine && <div className="prh-biz-meta">{addressLine}</div>}
           {contactLine && <div className="prh-biz-meta">{contactLine}</div>}
         </div>

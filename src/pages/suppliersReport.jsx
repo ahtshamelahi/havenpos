@@ -183,11 +183,13 @@ export default function SuppliersReport() {
   const [ledger, setLedger] = useState([]);
   const [locations, setLocations] = useState([]);
 
-  // Location filter state
+  // Location and User filter state
   const [locationFilter, setLocationFilter] = useState('');
+  const [users, setUsers] = useState([]);
+  const [userFilter, setUserFilter] = useState('');
   const { isOwner, isScopedToLocation, scopedLocationIds } = useLocationScope();
 
-  // Load locations and supplier metrics once on mount
+  // Load locations, users, and supplier metrics on mount / filter change
   useEffect(() => {
     if (!business?.id) return;
     
@@ -203,26 +205,43 @@ export default function SuppliersReport() {
 
     const loadData = async () => {
       try {
-        // 1. Fetch all supplier contacts
-        const { data: supRows } = await fetchAllBatched(() =>
-          supabase
-            .from('contacts')
-            .select('*')
-            .eq('business_id', business.id)
-            .eq('contact_type', 'supplier')
-        );
-        setSuppliers(supRows || []);
+        const [
+          { data: supRows },
+          { data: purchaseRows },
+          { data: userRows }
+        ] = await Promise.all([
+          fetchAllBatched(() => {
+            let q = supabase
+              .from('contacts')
+              .select('*')
+              .eq('business_id', business.id)
+              .eq('contact_type', 'supplier');
 
-        // 2. Query all received purchases (all time, filtered by location in-memory)
-        const { data: purchaseRows } = await fetchAllBatched(() =>
+            if (!isOwner && profile?.id) {
+              q = q.eq('created_by', profile.id);
+            } else if (isOwner && userFilter) {
+              q = q.eq('created_by', userFilter);
+            }
+
+            return q;
+          }),
+          fetchAllBatched(() =>
+            supabase
+              .from('purchases')
+              .select('supplier_id, location_id, grand_total, purchase_date, purchase_status')
+              .eq('business_id', business.id)
+              .eq('purchase_status', 'received')
+              .not('supplier_id', 'is', null)
+          ),
           supabase
-            .from('purchases')
-            .select('supplier_id, location_id, grand_total, purchase_date, purchase_status')
+            .from('users')
+            .select('id, first_name, last_name, username')
             .eq('business_id', business.id)
-            .eq('purchase_status', 'received')
-            .not('supplier_id', 'is', null)
-        );
+        ]);
+
+        setSuppliers(supRows || []);
         setPurchases(purchaseRows || []);
+        setUsers(userRows || []);
 
         // 3. Query ledger details for outstanding balance calculations
         const ids = (supRows || []).map((c) => c.id);
@@ -245,7 +264,7 @@ export default function SuppliersReport() {
     };
 
     loadData();
-  }, [business?.id]);
+  }, [business?.id, userFilter]);
 
   // Calculate stats per supplier matching filters in-memory
   const computedRows = useMemo(() => {
@@ -307,6 +326,10 @@ export default function SuppliersReport() {
   const cur = business?.currency || '';
   const fmt = (n) => `${cur} ${Number(n).toFixed(2)}`;
 
+  const selectedUserName = userFilter
+    ? ([users.find((u) => String(u.id) === String(userFilter))?.first_name, users.find((u) => String(u.id) === String(userFilter))?.last_name].filter(Boolean).join(' ') || 'Selected User')
+    : 'All Users';
+
   return (
     <AppLayout>
       <style>{CSS}</style>
@@ -315,7 +338,7 @@ export default function SuppliersReport() {
         <div className="sup-rep-filters no-print">
           {/* Location Select Dropdown — owners only */}
           {isOwner && (
-            <div className="sup-filter-group" style={{ maxWidth: '280px' }}>
+            <div className="sup-filter-group" style={{ maxWidth: '240px' }}>
               <label htmlFor="filter-location">Filter by Location</label>
               <select
                 id="filter-location"
@@ -331,6 +354,27 @@ export default function SuppliersReport() {
             </div>
           )}
 
+          {/* User Select Dropdown — owners only */}
+          {isOwner && users.length > 0 && (
+            <div className="sup-filter-group" style={{ maxWidth: '240px' }}>
+              <label htmlFor="filter-user">Filter by User</label>
+              <select
+                id="filter-user"
+                className="sup-select-input"
+                value={userFilter}
+                onChange={(e) => setUserFilter(e.target.value)}
+              >
+                <option value="">All Users</option>
+                {users.map((u) => {
+                  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Staff';
+                  return (
+                    <option key={u.id} value={u.id}>{name}</option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
           {/* Action Row */}
           <div className="sup-btn-row">
             <button className="btn btn-secondary btn-sm" onClick={() => window.print()} style={{ marginRight: '8px' }}>
@@ -338,7 +382,7 @@ export default function SuppliersReport() {
             </button>
             <button className="btn btn-primary btn-sm" onClick={() => {
               const locName = locationFilter ? (locations.find(l => String(l.id) === String(locationFilter))?.name || 'Unknown') : 'All Locations';
-              downloadPDF(buildPdfFilename('Suppliers Report', [{ value: locName }]));
+              downloadPDF(buildPdfFilename('Suppliers Report', [{ value: locName }, { value: selectedUserName }]));
             }}>
               📄 Save PDF
             </button>
@@ -352,6 +396,10 @@ export default function SuppliersReport() {
             {
               label: 'Location',
               value: locationFilter ? (locations.find(l => String(l.id) === String(locationFilter))?.name || 'Unknown') : 'All Locations',
+            },
+            {
+              label: 'User',
+              value: selectedUserName,
             },
           ]}
         />

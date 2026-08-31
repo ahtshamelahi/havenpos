@@ -236,7 +236,8 @@ function buildInvoiceHtml({ documentType, business, party, seller, invoiceNumber
 </head>
 <body>
   <div class="invoice">
-    <div class="biz-name">${esc(business.name)}</div>
+    <div class="biz-eyebrow" style="text-align: center; font-size: 13px; font-weight: 800; color: #1D2545; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px;">PASHA TRADERS APP</div>
+    <div class="biz-name">${esc(business.name || business.business_name || 'Pasha Traders')}</div>
     ${addressLine ? `<div class="biz-address">${esc(addressLine)}</div>` : ''}
     ${business.contact_number ? `<div class="biz-contact">${esc(business.contact_number)}</div>` : ''}
 

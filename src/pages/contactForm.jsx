@@ -113,7 +113,10 @@ export default function ContactForm() {
     e.preventDefault();
     setError('');
 
-    if (!form.name.trim() || !form.contact_number.trim()) {
+    const trimmedName = form.name.trim();
+    const trimmedNumber = form.contact_number.trim();
+
+    if (!trimmedName || !trimmedNumber) {
       setError('Name and contact number are required.');
       return;
     }
@@ -121,11 +124,37 @@ export default function ContactForm() {
     setSubmitting(true);
 
     try {
+      const targetLocationId = form.location_id ? Number(form.location_id) : (isScopedToLocation && scopedLocationIds[0] ? scopedLocationIds[0] : null);
+
+      // Pre-check for duplicate contact number within the SAME location
+      let dupQuery = supabase
+        .from('contacts')
+        .select('id')
+        .eq('business_id', business.id)
+        .eq('contact_number', trimmedNumber);
+
+      if (targetLocationId) {
+        dupQuery = dupQuery.eq('location_id', targetLocationId);
+      } else {
+        dupQuery = dupQuery.is('location_id', null);
+      }
+
+      if (isEdit) {
+        dupQuery = dupQuery.neq('id', id);
+      }
+
+      const { data: existing } = await dupQuery;
+      if (existing && existing.length > 0) {
+        setError('A contact with this contact number already exists for this location. Please enter a unique contact number for this location.');
+        setSubmitting(false);
+        return;
+      }
+
       const payload = {
         business_id: business.id,
         contact_type: form.contact_type,
-        name: form.name.trim(),
-        contact_number: form.contact_number.trim(),
+        name: trimmedName,
+        contact_number: trimmedNumber,
         alternate_number: form.alternate_number.trim() || null,
         email: form.email.trim() || null,
         landline: form.landline.trim() || null,
@@ -133,7 +162,7 @@ export default function ContactForm() {
         address: form.address.trim() || null,
         city: form.city.trim() || null,
         country: form.country.trim() || null,
-        location_id: form.location_id ? Number(form.location_id) : (isScopedToLocation && scopedLocationIds[0] ? scopedLocationIds[0] : null),
+        location_id: targetLocationId,
         created_by: profile?.id || null,
 
         // Only suppliers can have a Tax / NTN number
@@ -163,9 +192,17 @@ export default function ContactForm() {
 
       navigate('/contacts');
     } catch (err) {
-      setError(
-        err.message || 'Could not save this contact.'
-      );
+      if (
+        err.code === '23505' ||
+        err.message?.includes('uq_contacts_business_contact_number') ||
+        err.message?.includes('unique constraint')
+      ) {
+        setError('A contact with this contact number already exists in your database constraint. Please run the SQL command to drop or update the unique constraint across locations.');
+      } else {
+        setError(
+          err.message || 'Could not save this contact.'
+        );
+      }
     } finally {
       setSubmitting(false);
     }

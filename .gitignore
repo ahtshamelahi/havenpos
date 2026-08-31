@@ -40,7 +40,10 @@ lerna-debug.log*
 *.sln
 *.sw?
 
-# ─── OS Files ─────────────────────────────────────────────────
+# ─── OS Files ──── #
 .DS_Store
 Thumbs.db
 desktop.ini
+
+
+

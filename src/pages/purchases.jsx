@@ -18,6 +18,7 @@ import {
 import { downloadPDF, buildPdfFilename } from '../utils/pdfGenerator.js';
 import PrintReportHeader from '../components/PrintReportHeader.jsx';
 import useLocationScope from '../hooks/useLocationScope.js';
+import { printPurchaseInvoice } from '../lib/printInvoice.js';
 
 const STATUS_BADGE = {
   draft: 'badge-warning',
@@ -170,6 +171,62 @@ export default function Purchases() {
       Number(purchase.advance_payment || 0);
 
     return due > 0 ? 'due' : 'paid';
+  };
+
+  const handlePrintReceipt = async (purchase) => {
+    setError('');
+    setBusyId(`print-${purchase.id}`);
+
+    try {
+      let purchaseItems = items[purchase.id];
+
+      if (!purchaseItems) {
+        const { data, error: itemsError } = await supabase
+          .from('purchase_items')
+          .select('*, products(name)')
+          .eq('purchase_id', purchase.id);
+
+        if (itemsError) throw itemsError;
+        purchaseItems = data || [];
+
+        setItems((prev) => ({
+          ...prev,
+          [purchase.id]: purchaseItems,
+        }));
+      }
+
+      const formattedItems = purchaseItems.map((it) => ({
+        ...it,
+        product_name: it.products?.name || '—',
+      }));
+
+      let supplier = null;
+      if (purchase.supplier_id) {
+        const { data: contactData } = await supabase
+          .from('contacts')
+          .select('name, contact_number, address')
+          .eq('id', purchase.supplier_id)
+          .single();
+        supplier = contactData;
+      }
+
+      const sellerInfo = {
+        name: users[purchase.created_by] || 'System',
+      };
+
+      printPurchaseInvoice({
+        business,
+        purchase,
+        items: formattedItems,
+        supplier,
+        seller: sellerInfo,
+        footerNote: business.settings?.invoice_footer_note || '',
+      });
+    } catch (err) {
+      setError(err.message || 'Could not print purchase receipt');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const markReceived = async (purchase) => {
@@ -1234,6 +1291,16 @@ export default function Purchases() {
                               Edit
                             </button>
                           )}
+
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '11px', marginRight: 4 }}
+                            disabled={busyId === `print-${p.id}`}
+                            onClick={() => handlePrintReceipt(p)}
+                          >
+                            {busyId === `print-${p.id}` ? '...' : 'Receipt'}
+                          </button>
 
                           {canEdit &&
                             p.purchase_status ===
