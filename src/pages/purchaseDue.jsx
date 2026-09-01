@@ -322,7 +322,7 @@ export default function PurchaseDue() {
     } catch (err) {
       setModalError(
         err.message ||
-          'Could not record this payment.'
+        'Could not record this payment.'
       );
     } finally {
       setSubmitting(false);
@@ -401,7 +401,7 @@ export default function PurchaseDue() {
       >
         <DataSearchBar
           {...search}
-          placeholder="Search supplier or total..."
+          placeholder="Search supplier"
         />
 
         <select
@@ -531,8 +531,8 @@ export default function PurchaseDue() {
                     className="muted table-empty"
                   >
                     {search.isActive ||
-                    supplierFilter ||
-                    locationFilter
+                      supplierFilter ||
+                      locationFilter
                       ? 'No matching purchases found.'
                       : 'Nothing outstanding — all purchases are paid up.'}
                   </td>

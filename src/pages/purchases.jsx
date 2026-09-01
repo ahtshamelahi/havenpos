@@ -45,6 +45,7 @@ export default function Purchases() {
   const [items, setItems] = useState({});
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [openActionId, setOpenActionId] = useState(null);
 
   // ---------- filters ----------
   const [filterSupplierId, setFilterSupplierId] = useState('');
@@ -143,6 +144,19 @@ export default function Purchases() {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [business?.id]);
+
+  // Close the actions dropdown when clicking outside
+  useEffect(() => {
+    if (openActionId === null) return;
+    const handler = (e) => {
+      const dropdownEl = document.getElementById(`action-dropdown-${openActionId}`);
+      if (dropdownEl && !dropdownEl.contains(e.target)) {
+        setOpenActionId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openActionId]);
 
   const toggleExpand = async (purchaseId) => {
     if (expanded === purchaseId) {
@@ -345,10 +359,10 @@ export default function Purchases() {
       const matchesLocation =
         isScopedToLocation
           ? (scopedLocationIds.length === 0
-              ? false
-              : scopedLocationIds.includes(purchase.location_id))
+            ? false
+            : scopedLocationIds.includes(purchase.location_id))
           : (!filterLocationId ||
-              String(purchase.location_id) === filterLocationId);
+            String(purchase.location_id) === filterLocationId);
 
       const matchesStatus =
         !filterStatus ||
@@ -824,74 +838,8 @@ export default function Purchases() {
 
   return (
     <AppLayout>
-      <div className="page-header">
-        <div>
-          <h1>Purchases | Stock intake for {business?.business_name}.</h1>
-        </div>
-
-        {canCreate && (
-          <div
-            className="no-print"
-            style={{
-              display: 'flex',
-              gap: 8,
-            }}
-          >
-            <Link
-              to="/reports/purchases"
-              className="btn btn-secondary"
-            >
-              Purchases Report
-            </Link>
-
-            <Link
-              to="/purchases/returns"
-              className="btn btn-secondary"
-            >
-              Returns
-            </Link>
-
-            <Link
-              to="/purchases/due"
-              className="btn btn-secondary"
-            >
-              Payments Due
-            </Link>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => window.print()}
-            >
-              🖨 Print
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                const filename = buildPdfFilename('Purchases_List');
-                downloadPDF('purchases-report-content', filename);
-              }}
-            >
-              📄 Save PDF
-            </button>
-
-            <button
-              className="btn btn-primary"
-              onClick={() =>
-                navigate('/purchases/new')
-              }
-            >
-              + New purchase
-            </button>
-          </div>
-        )}
-      </div>
-
       {error && (
-        <div
-          className="error-text"
-          style={{ marginBottom: 12 }}
-        >
+        <div className="error-text" style={{ marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -899,248 +847,141 @@ export default function Purchases() {
       <div className="card list-panel" id="purchases-report-content">
         <PrintReportHeader title="Purchases List" />
 
-        {/* ---------- SEARCH ---------- */}
-        <div
-          className="no-print"
-          style={{
-            padding: '4px 4px 12px',
-          }}
-        >
-          <DataSearchBar
-            query={search.query}
-            setQuery={search.setQuery}
-            clearSearch={search.clearSearch}
-            placeholder="Search supplier or total..."
-          />
+        {/* ── Top bar: dark navy header ── */}
+        <div className="no-print" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '11px 16px',
+          background: 'var(--navy-800)',
+          borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+          flexWrap: 'nowrap',
+        }}>
+          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', color: '#fff', letterSpacing: '0.01em' }}>
+            Purchases
+          </h1>
+
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+            <DataSearchBar
+              query={search.query}
+              setQuery={search.setQuery}
+              clearSearch={search.clearSearch}
+              placeholder="Search supplier"
+            />
+          </div>
+
+          <Link to="/reports/purchases" className="btn btn-sm" style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}>
+            Purchases Report
+          </Link>
+          <Link to="/purchases/returns" className="btn btn-sm" style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}>
+            Returns
+          </Link>
+          <Link to="/purchases/due" className="btn btn-sm" style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}>
+            Payments Due
+          </Link>
+          <button
+            className="btn btn-sm"
+            style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}
+            onClick={() => window.print()}
+          >
+            🖨 Print
+          </button>
+          <button
+            className="btn btn-sm"
+            style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}
+            onClick={() => {
+              const filename = buildPdfFilename('Purchases_List');
+              downloadPDF('purchases-report-content', filename);
+            }}
+          >
+            📄 PDF
+          </button>
+          {canCreate && (
+            <button
+              className="btn btn-sm"
+              style={{ whiteSpace: 'nowrap', background: '#fff', color: 'var(--navy-800)', fontWeight: 700, border: 'none' }}
+              onClick={() => navigate('/purchases/new')}
+            >
+              + New Purchase
+            </button>
+          )}
         </div>
 
-        {/* ---------- FILTERS ---------- */}
-        <div
-          className="no-print"
-          style={{
-            display: 'flex',
-            gap: 12,
-            flexWrap: 'wrap',
-            padding: '4px 4px 16px',
-          }}
-        >
-          {/* Supplier */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 180,
-            }}
+        {/* ── Filter bar: light blue tint ── */}
+        <div className="no-print" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '8px 16px',
+          borderBottom: '1px solid var(--navy-border)',
+          flexWrap: 'wrap',
+          background: 'var(--navy-100)',
+        }}>
+          <select
+            value={filterSupplierId}
+            onChange={(e) => setFilterSupplierId(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <label
-              className="muted"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              Filter by supplier
-            </label>
+            <option value="">All suppliers</option>
+            {supplierFilterOptions.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
 
+          {isOwner && (
             <select
-              value={filterSupplierId}
-              onChange={(e) =>
-                setFilterSupplierId(e.target.value)
-              }
+              value={filterLocationId}
+              onChange={(e) => setFilterLocationId(e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
             >
-              <option value="">
-                All suppliers
-              </option>
-
-              {supplierFilterOptions.map((s) => (
-                <option
-                  key={s.id}
-                  value={s.id}
-                >
-                  {s.name}
-                </option>
+              <option value="">All locations</option>
+              {locationFilterOptions.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
-          </div>
-
-          {/* Location — owners only */}
-          {isOwner && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-                minWidth: 180,
-              }}
-            >
-              <label
-                className="muted"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
-              >
-                Filter by location
-              </label>
-
-              <select
-                value={filterLocationId}
-                onChange={(e) =>
-                  setFilterLocationId(e.target.value)
-                }
-              >
-                <option value="">
-                  All locations
-                </option>
-
-                {locationFilterOptions.map((l) => (
-                  <option
-                    key={l.id}
-                    value={l.id}
-                  >
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </div>
           )}
 
-          {/* Status */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 160,
-            }}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <label
-              className="muted"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              Filter by status
-            </label>
+            <option value="">All statuses</option>
+            {statusFilterOptions.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
 
-            <select
-              value={filterStatus}
-              onChange={(e) =>
-                setFilterStatus(e.target.value)
-              }
-            >
-              <option value="">
-                All statuses
-              </option>
-
-              {statusFilterOptions.map((status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Payment Status */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 180,
-            }}
+          <select
+            value={filterPaymentStatus}
+            onChange={(e) => setFilterPaymentStatus(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <label
-              className="muted"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              Filter by payment
-            </label>
+            <option value="">All pay. status</option>
+            {paymentStatusFilterOptions.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
 
-            <select
-              value={filterPaymentStatus}
-              onChange={(e) =>
-                setFilterPaymentStatus(e.target.value)
-              }
-            >
-              <option value="">
-                All payment statuses
-              </option>
-
-              {paymentStatusFilterOptions.map(
-                (status) => (
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {status}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          {/* Added By */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 180,
-            }}
+          <select
+            value={filterCreatedBy}
+            onChange={(e) => setFilterCreatedBy(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <label
-              className="muted"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              Filter by added by
-            </label>
-
-            <select
-              value={filterCreatedBy}
-              onChange={(e) =>
-                setFilterCreatedBy(e.target.value)
-              }
-            >
-              <option value="">
-                All users
-              </option>
-
-              {createdByFilterOptions.map((u) => (
-                <option
-                  key={u.id}
-                  value={u.id}
-                >
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <option value="">All users</option>
+            {createdByFilterOptions.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
 
           {(hasActiveFilters || search.isActive) && (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              style={{
-                alignSelf: 'flex-end',
-              }}
-              onClick={() => {
-                clearFilters();
-                search.clearSearch();
-              }}
+              style={{ whiteSpace: 'nowrap', fontSize: 12, padding: '5px 10px' }}
+              onClick={() => { clearFilters(); search.clearSearch(); }}
             >
-              Clear all
+              ✕ Clear
             </button>
           )}
         </div>
@@ -1277,66 +1118,76 @@ export default function Purchases() {
 
                         <td
                           className="table-actions no-print"
-                          onClick={(e) =>
-                            e.stopPropagation()
-                          }
+                          style={{ position: 'relative' }}
+                          onClick={(e) => e.stopPropagation()}
+                          id={`action-dropdown-${p.id}`}
                         >
-                          {canEdit && (
-                            <button
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '4px 8px', fontSize: '11px', marginRight: 4 }}
-                              onClick={() =>
-                                navigate(
-                                  `/purchases/new?id=${p.id}`
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
-                          )}
-
                           <button
-                            type="button"
                             className="btn btn-secondary btn-sm"
-                            style={{ padding: '4px 8px', fontSize: '11px', marginRight: 4 }}
-                            disabled={busyId === `print-${p.id}`}
-                            onClick={() => handlePrintReceipt(p)}
+                            style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                            onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
                           >
-                            {busyId === `print-${p.id}` ? '...' : 'Receipt'}
+                            Actions ▾
                           </button>
-
-                          {canEdit &&
-                            p.purchase_status ===
-                            'draft' && (
+                          {openActionId === p.id && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                zIndex: 200,
+                                background: 'var(--white)',
+                                border: '1px solid var(--navy-border)',
+                                borderRadius: 6,
+                                boxShadow: 'var(--shadow-lg)',
+                                minWidth: 130,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                padding: '4px 0',
+                              }}
+                            >
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                  onClick={() => { setOpenActionId(null); navigate(`/purchases/new?id=${p.id}`); }}
+                                >
+                                  ✏️ Edit
+                                </button>
+                              )}
                               <button
+                                type="button"
                                 className="btn btn-secondary btn-sm"
-                                style={{ padding: '4px 8px', fontSize: '11px', marginRight: 4 }}
-                                disabled={
-                                  busyId === p.id
-                                }
-                                onClick={() =>
-                                  markReceived(p)
-                                }
+                                style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                disabled={busyId === `print-${p.id}`}
+                                onClick={() => { setOpenActionId(null); handlePrintReceipt(p); }}
                               >
-                                {busyId === p.id
-                                  ? 'Receiving…'
-                                  : 'Mark received'}
+                                {busyId === `print-${p.id}` ? '...' : '🧾 Receipt'}
                               </button>
-                            )}
-
-                          {canEdit &&
-                            p.purchase_status ===
-                            'received' && (
-                              <button
-                                className="btn btn-secondary btn-sm"
-                                style={{ padding: '4px 8px', fontSize: '11px' }}
-                                onClick={() =>
-                                  openReturn(p)
-                                }
-                              >
-                                Return
-                              </button>
-                            )}
+                              {canEdit && p.purchase_status === 'draft' && (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                  disabled={busyId === p.id}
+                                  onClick={() => { setOpenActionId(null); markReceived(p); }}
+                                >
+                                  {busyId === p.id ? 'Receiving…' : '📥 Mark received'}
+                                </button>
+                              )}
+                              {canEdit && p.purchase_status === 'received' && (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                  onClick={() => { setOpenActionId(null); openReturn(p); }}
+                                >
+                                  ↩️ Return
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         <td>
