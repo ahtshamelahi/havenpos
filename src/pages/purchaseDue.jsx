@@ -277,17 +277,11 @@ export default function PurchaseDue() {
         Number(payModal.advance_payment) +
         amt;
 
-      const newDue = Math.max(
-        Number(payModal.grand_total) - newAdvance,
-        0
-      );
-
       const { error: purchaseErr } =
         await supabase
           .from('purchases')
           .update({
             advance_payment: newAdvance,
-            due_amount: newDue,
             payment_method: paymentMethod,
             paid_on: new Date()
               .toISOString()
