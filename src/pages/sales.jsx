@@ -45,6 +45,7 @@ export default function Sales() {
   const [items, setItems] = useState({});
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [openActionId, setOpenActionId] = useState(null);
 
   // Dynamic sales return modal
   const [returnModal, setReturnModal] = useState(null);
@@ -245,6 +246,20 @@ export default function Sales() {
 
     /* eslint-disable-next-line */
   }, [business?.id]);
+
+  // Close the actions dropdown when clicking outside
+  useEffect(() => {
+    if (openActionId === null) return;
+    const handler = (e) => {
+      // Only close if the click is outside the open dropdown's td
+      const dropdownEl = document.getElementById(`action-dropdown-${openActionId}`);
+      if (dropdownEl && !dropdownEl.contains(e.target)) {
+        setOpenActionId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openActionId]);
 
   /*
    * SEARCH
@@ -896,266 +911,174 @@ export default function Sales() {
 
   return (
     <AppLayout>
-      <div className="page-header">
-        <div>
-          <h1>Sales | Orders, quotations, and drafts for{' '}
-            {business?.business_name}.</h1>
-        </div>
-
-        {canCreate && (
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-            }}
-          >
-            <Link
-              to="/reports/sales"
-              className="btn btn-secondary"
-            >
-              Sales Report
-            </Link>
-            <Link
-              to="/sales/returns"
-              className="btn btn-secondary"
-            >
-              Returns
-            </Link>
-
-            <Link
-              to="/sales/due"
-              className="btn btn-secondary"
-            >
-              Payments Due
-            </Link>
-
-            <button
-              className="btn btn-primary"
-              onClick={() =>
-                navigate('/sales/new')
-              }
-            >
-              + New sale
-            </button>
-          </div>
-        )}
-      </div>
-
       {error && (
         <div
           className="error-text"
-          style={{
-            marginBottom: 12,
-          }}
+          style={{ marginBottom: 12 }}
         >
           {error}
         </div>
       )}
 
       <div className="card list-panel">
-        <div style={{ padding: '16px' }}>
-          <DataSearchBar
-            query={search.query}
-            setQuery={search.setQuery}
-            clearSearch={search.clearSearch}
-            placeholder="Search invoice #, customer, or total…"
-          />
+        {/* ── Top bar: dark navy header ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '11px 16px',
+          background: 'var(--navy-800)',
+          borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+          flexWrap: 'nowrap',
+        }}>
+          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', color: '#fff', letterSpacing: '0.01em' }}>
+            Sales
+          </h1>
+
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+            <DataSearchBar
+              query={search.query}
+              setQuery={search.setQuery}
+              clearSearch={search.clearSearch}
+              placeholder="Search invoice #, Customer"
+            />
+          </div>
+
+          <Link to="/reports/sales" className="btn btn-sm" style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}>
+            Sales Report
+          </Link>
+          <Link to="/sales/returns" className="btn btn-sm" style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}>
+            Returns
+          </Link>
+          <Link to="/sales/due" className="btn btn-sm" style={{ whiteSpace: 'nowrap', background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}>
+            Payments Due
+          </Link>
+          {canCreate && (
+            <button
+              className="btn btn-sm"
+              style={{ whiteSpace: 'nowrap', background: '#fff', color: 'var(--navy-800)', fontWeight: 700, border: 'none' }}
+              onClick={() => navigate('/sales/new')}
+            >
+              + New Sale
+            </button>
+          )}
         </div>
-        <div className="list-toolbar">
 
-
+        {/* ── Filter bar: light blue tint ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '8px 16px',
+          borderBottom: '1px solid var(--navy-border)',
+          flexWrap: 'wrap',
+          background: 'var(--navy-100)',
+        }}>
           <select
             value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value)
-            }
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <option value="all">
-              All statuses
-            </option>
-
-            <option value="confirmed">
-              Confirmed
-            </option>
-
-            <option value="draft">
-              Draft
-            </option>
-
-            <option value="quotation">
-              Quotation
-            </option>
-
-            <option value="shipped">
-              Shipped
-            </option>
-
-            <option value="partially_returned">
-              Partially returned
-            </option>
-
-            <option value="returned">
-              Returned
-            </option>
+            <option value="all">All statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="draft">Draft</option>
+            <option value="quotation">Quotation</option>
+            <option value="shipped">Shipped</option>
+            <option value="partially_returned">Partially returned</option>
+            <option value="returned">Returned</option>
           </select>
 
           <select
             value={paymentStatusFilter}
-            onChange={(e) =>
-              setPaymentStatusFilter(
-                e.target.value
-              )
-            }
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
+            onChange={(e) => setPaymentStatusFilter(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <option value="all">
-              All payment statuses
-            </option>
-
-            <option value="paid">
-              Paid
-            </option>
-
-            <option value="due">
-              Due
-            </option>
+            <option value="all">All pay. status</option>
+            <option value="paid">Paid</option>
+            <option value="due">Due</option>
           </select>
 
           {isOwner && (
             <select
               value={locationFilter}
-              onChange={(e) =>
-                setLocationFilter(e.target.value)
-              }
-              style={{
-                padding: '8px 12px',
-                borderRadius: 6,
-                border:
-                  '1px solid var(--navy-border)',
-              }}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
             >
-              <option value="">
-                All locations
-              </option>
-
+              <option value="">All locations</option>
               {locationOptions.map((l) => (
-                <option
-                  key={l.id}
-                  value={l.id}
-                >
-                  {l.name}
-                </option>
+                <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
           )}
 
           <select
             value={customerFilter}
-            onChange={(e) =>
-              setCustomerFilter(e.target.value)
-            }
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <option value="">
-              All customers
-            </option>
-
+            <option value="">All customers</option>
             {customerOptions.map((customer) => (
-              <option
-                key={customer.id}
-                value={customer.id}
-              >
-                {customer.name}
-              </option>
+              <option key={customer.id} value={customer.id}>{customer.name}</option>
             ))}
           </select>
 
           <select
             value={paymentMethodFilter}
-            onChange={(e) =>
-              setPaymentMethodFilter(e.target.value)
-            }
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
+            onChange={(e) => setPaymentMethodFilter(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <option value="all">
-              All payment methods
-            </option>
-
+            <option value="all">All methods</option>
             {paymentMethodOptions.map((method) => (
-              <option
-                key={method}
-                value={method}
-              >
-                {method.replace('_', ' ')}
-              </option>
+              <option key={method} value={method}>{method.replace('_', ' ')}</option>
             ))}
           </select>
 
           <select
             value={addedByFilter}
-            onChange={(e) =>
-              setAddedByFilter(e.target.value)
-            }
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              border:
-                '1px solid var(--navy-border)',
-            }}
+            onChange={(e) => setAddedByFilter(e.target.value)}
+            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--navy-border)', fontSize: 12, flex: '1 1 110px', minWidth: 100 }}
           >
-            <option value="">
-              All users
-            </option>
-
+            <option value="">All users</option>
             {addedByOptions.map((user) => (
-              <option
-                key={user.id}
-                value={user.id}
-              >
-                {user.name}
-              </option>
+              <option key={user.id} value={user.id}>{user.name}</option>
             ))}
           </select>
+
+          {(statusFilter !== 'all' || paymentStatusFilter !== 'all' || locationFilter || customerFilter || paymentMethodFilter !== 'all' || addedByFilter) && (
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ whiteSpace: 'nowrap', fontSize: 12, padding: '5px 10px' }}
+              onClick={() => {
+                setStatusFilter('all');
+                setPaymentStatusFilter('all');
+                setLocationFilter('');
+                setCustomerFilter('');
+                setPaymentMethodFilter('all');
+                setAddedByFilter('');
+              }}
+            >
+              ✕ Clear
+            </button>
+          )}
         </div>
 
-        <table className="data-table">
+        <div style={{ overflowX: 'auto', paddingBottom: 16 }}>
+          <table className="data-table table-compact" style={{ whiteSpace: 'nowrap' }}>
           <thead>
             <tr>
               <th></th>
               <SortableHeader label="Invoice #" sortKey="id" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
               <th>Actions</th>
+              <SortableHeader label="Customer" sortKey="customer" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
+              <SortableHeader label="Items" sortKey="total_items" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
               <SortableHeader label="Total Amount" sortKey="grand_total" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Total Items" sortKey="total_items" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
+              <SortableHeader label="Paid " sortKey="paid_amount" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
+              <SortableHeader label="Due " sortKey="due_amount" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
+              <SortableHeader label="Payment Status" sortKey="payment_status" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
               <SortableHeader label="Status" sortKey="status" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
               <SortableHeader label="Location" sortKey="location" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
               <SortableHeader label="Time" sortKey="created_at" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Customer" sortKey="customer" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Customer Number" sortKey="customer_number" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Payment Method" sortKey="payment_method" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Paid Amount" sortKey="paid_amount" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Due Amount" sortKey="due_amount" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
-              <SortableHeader label="Payment Status" sortKey="payment_status" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
+              <SortableHeader label=" Method" sortKey="payment_method" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
               <SortableHeader label="Added By" sortKey="added_by" currentSortKey={sort.sortKey} sortDirection={sort.sortDirection} toggleSortKey={sort.toggleSortKey} />
             </tr>
           </thead>
@@ -1164,7 +1087,7 @@ export default function Sales() {
             {loading && (
               <tr>
                 <td
-                  colSpan={15}
+                  colSpan={14}
                   className="muted table-empty"
                 >
                   Loading…
@@ -1176,7 +1099,7 @@ export default function Sales() {
               rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={15}
+                    colSpan={14}
                     className="muted table-empty"
                   >
                     No sales yet.
@@ -1189,7 +1112,7 @@ export default function Sales() {
               filteredRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={15}
+                    colSpan={14}
                     className="muted table-empty"
                   >
                     No sales match your search or filters.
@@ -1216,98 +1139,127 @@ export default function Sales() {
                       <td>
                         #{s.id}
                       </td>
+                      {/* Actions dropdown */}
                       <td
+                        id={`action-dropdown-${s.id}`}
                         className="table-actions"
                         onClick={(e) => e.stopPropagation()}
+                        style={{ position: 'relative' }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: 4,
-                            justifyContent: 'flex-start',
-                            flexWrap: 'nowrap',
-                          }}
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                          onClick={() => setOpenActionId(openActionId === s.id ? null : s.id)}
                         >
-                          {canEdit && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '4px 8px', fontSize: '11px' }}
-                              onClick={() => navigate(`/sales/new?edit=${s.id}`)}
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {canReturn && RETURNABLE_STATUSES.includes(s.status) && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '4px 8px', fontSize: '11px' }}
-                              disabled={busyId === s.id}
-                              onClick={() => openReturn(s)}
-                            >
-                              {busyId === s.id ? '...' : 'Return'}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '4px 8px', fontSize: '11px' }}
-                            disabled={busyId === `print-${s.id}`}
-                            onClick={() => handlePrint(s)}
+                          Actions ▾
+                        </button>
+                        {openActionId === s.id && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              zIndex: 200,
+                              background: 'var(--white)',
+                              border: '1px solid var(--navy-border)',
+                              borderRadius: 6,
+                              boxShadow: 'var(--shadow-lg)',
+                              minWidth: 130,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              padding: '4px 0',
+                            }}
                           >
-                            {busyId === `print-${s.id}` ? '...' : 'Receipt'}
-                          </button>
-                          {canEdit && (s.status === 'draft' || s.status === 'quotation') && (
+                            {canEdit && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                onClick={() => { setOpenActionId(null); navigate(`/sales/new?edit=${s.id}`); }}
+                              >
+                                ✏️ Edit
+                              </button>
+                            )}
+                            {canReturn && RETURNABLE_STATUSES.includes(s.status) && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                disabled={busyId === s.id}
+                                onClick={() => { setOpenActionId(null); openReturn(s); }}
+                              >
+                                {busyId === s.id ? '...' : '↩️ Return'}
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
-                              style={{ padding: '4px 8px', fontSize: '11px' }}
-                              disabled={busyId === s.id}
-                              onClick={() => confirmSale(s)}
+                              style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                              disabled={busyId === `print-${s.id}`}
+                              onClick={() => { setOpenActionId(null); handlePrint(s); }}
                             >
-                              {busyId === s.id ? '...' : 'Confirm'}
+                              {busyId === `print-${s.id}` ? '...' : '🧾 Receipt'}
                             </button>
-                          )}
-                        </div>
+                            {canEdit && (s.status === 'draft' || s.status === 'quotation') && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ borderRadius: 0, border: 'none', padding: '7px 14px', fontSize: '12px', textAlign: 'left', justifyContent: 'flex-start' }}
+                                disabled={busyId === s.id}
+                                onClick={() => { setOpenActionId(null); confirmSale(s); }}
+                              >
+                                {busyId === s.id ? '...' : '✅ Confirm'}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
-                      <td>
-                        {business?.currency} {Number(s.grand_total || 0).toFixed(2)}
-                      </td>
-                      <td>
-                        {itemTotals[s.id] || 0}
-                      </td>
-                      <td>
-                        <span className={`badge ${STATUS_BADGE[s.status] || 'badge-info'}`}>
-                          {s.status ? s.status.replace('_', ' ') : '—'}
-                        </span>
-                      </td>
-                      <td>
-                        {locations[s.location_id] || '—'}
-                      </td>
-                      <td>
-                        {s.created_at ? formatTimestamp(s.created_at, business?.time_zone) : '—'}
-                      </td>
+                      {/* Customer */}
                       <td>
                         {customers[s.customer_id] || 'Walk-in'}
                       </td>
+                      {/* Items */}
                       <td>
-                        {s.customer_id ? customerNumbers[s.customer_id] || '—' : '—'}
+                        {itemTotals[s.id] || 0}
                       </td>
+                      {/* Total Amount */}
                       <td>
-                        {s.payment_method ? s.payment_method.replace('_', ' ') : '—'}
+                        {business?.currency} {Number(s.grand_total || 0).toFixed(2)}
                       </td>
+                      {/* Paid Amount */}
                       <td>
                         {business?.currency} {Number(s.paid_amount || 0).toFixed(2)}
                       </td>
+                      {/* Due Amount */}
                       <td>
                         {business?.currency} {Number(s.due_amount || 0).toFixed(2)}
                       </td>
+                      {/* Payment Status */}
                       <td>
                         <span className={`badge ${paymentStatus === 'paid' ? 'badge-success' : 'badge-warning'}`}>
                           {paymentStatus}
                         </span>
                       </td>
+                      {/* Status */}
+                      <td>
+                        <span className={`badge ${STATUS_BADGE[s.status] || 'badge-info'}`}>
+                          {s.status ? s.status.replace('_', ' ') : '—'}
+                        </span>
+                      </td>
+                      {/* Location */}
+                      <td>
+                        {locations[s.location_id] || '—'}
+                      </td>
+                      {/* Time */}
+                      <td>
+                        {s.created_at ? formatTimestamp(s.created_at, business?.time_zone) : '—'}
+                      </td>
+                      {/* Payment Method */}
+                      <td>
+                        {s.payment_method ? s.payment_method.replace('_', ' ') : '—'}
+                      </td>
+                      {/* Added By */}
                       <td>
                         {s.created_by ? users[s.created_by] || '—' : '—'}
                       </td>
@@ -1316,7 +1268,7 @@ export default function Sales() {
                     {expanded === s.id && (
                       <tr>
                         <td
-                          colSpan={15}
+                          colSpan={14}
                           style={{
                             background:
                               'var(--navy-50)',
@@ -1407,33 +1359,40 @@ export default function Sales() {
                   <td colSpan={3}>
                     <strong>Total</strong>
                   </td>
+                  {/* Customer */}
+                  <td></td>
+                  {/* Items */}
+                  <td>
+                    <strong>{summaryTotals.items}</strong>
+                  </td>
+                  {/* Total Amount */}
                   <td>
                     <strong>
                       {business?.currency}{' '}
                       {summaryTotals.total.toFixed(2)}
                     </strong>
                   </td>
-                  <td>
-                    <strong>{summaryTotals.items}</strong>
-                  </td>
-                  <td colSpan={6}></td>
+                  {/* Paid Amount */}
                   <td>
                     <strong>
                       {business?.currency}{' '}
                       {summaryTotals.paid.toFixed(2)}
                     </strong>
                   </td>
+                  {/* Due Amount */}
                   <td>
                     <strong>
                       {business?.currency}{' '}
                       {summaryTotals.due.toFixed(2)}
                     </strong>
                   </td>
-                  <td colSpan={2}></td>
+                  {/* Payment Status, Status, Location, Time, Payment Method, Added By */}
+                  <td colSpan={6}></td>
                 </tr>
               )}
           </tbody>
         </table>
+        </div>
 
         {!loading &&
           totalPages > 1 && (
