@@ -78,12 +78,18 @@ export default function SaleForm() {
         .eq('business_id', business.id)
         .eq('is_active', true),
 
-      supabase
-        .from('contacts')
-        .select('id, name')
-        .eq('business_id', business.id)
-        .eq('contact_type', 'customer')
-        .eq('is_active', true),
+      (() => {
+        let q = supabase
+          .from('contacts')
+          .select('id, name')
+          .eq('business_id', business.id)
+          .eq('contact_type', 'customer')
+          .eq('is_active', true);
+        if (!profile?.is_owner) {
+          q = q.eq('created_by', profile.id);
+        }
+        return q;
+      })(),
 
       supabase
         .from('users')
@@ -320,7 +326,6 @@ export default function SaleForm() {
       subtotal,
       taxAmount,
       overallDiscount: overallDiscountAmt,
-      overallDiscountRatio,
       shipping,
       grandTotal,
       due,
@@ -569,16 +574,11 @@ export default function SaleForm() {
        */
       const fifoCosts = await getFifoCosts(business.id, items);
 
-      // Reuse the exact ratio the totals useMemo above already computed —
-      // it's derived from the subtotal BEFORE the overall discount is
-      // applied. Re-deriving it here from totals.subtotal would be wrong,
-      // since that field is already post-overall-discount.
       const itemRows = items.map((it) => {
         const c = computeLine(
           it,
           taxRatesById,
-          productsById,
-          totals.overallDiscountRatio
+          productsById
         );
 
         return {
